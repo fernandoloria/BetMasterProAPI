@@ -722,7 +722,7 @@ namespace WolfApiCore.DbTier
                 {
                     string Description /*255*/ = "VegasLive #" + idlivewager + " [" + fixtureId + "] " + sportName + " / " + visitorTeam + " @ " + homeTeam;
 
-                    string CompleteDescription/*100*/ = propSelected.MarketName + " • " + propSelected.Name + " • " + propSelected.BaseLine + " • " + propSelected.Odds1;
+                    string CompleteDescription/*100*/ = $"{visitorTeam} @ {homeTeam} {propSelected.MarketName} • {propSelected.Name} • {propSelected.BaseLine} • {propSelected.Odds1}";
 
                    var idlivewagerDetail = InsertLiveWagerDetail(idlivewager, fixtureId, propSelected.MarketId, propSelected.IdL1, propSelected.BaseLine, propSelected.Line1, (int)propSelected.Odds1, (decimal)propSelected.Price, propSelected.OriginalName, CompleteDescription, (int)riskAmount, (int)winAmount);
 
