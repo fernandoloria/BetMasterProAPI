@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
 using System.Data;
 using WolfApiCore.LSportApi;
 using WolfApiCore.Models;
@@ -720,9 +721,19 @@ namespace WolfApiCore.DbTier
 
                 if (idlivewager > 0)
                 {
-                    string Description /*255*/ = "VegasLive #" + idlivewager + " [" + fixtureId + "] " + sportName + " / " + visitorTeam + " @ " + homeTeam;
 
-                    string CompleteDescription/*100*/ = $"{visitorTeam} @ {homeTeam} {propSelected.MarketName} • {propSelected.Name} • {propSelected.BaseLine} • {propSelected.Odds1}";
+                    WagerDetailCompleteDescriptionModel wagerDetailCompleteDescriptionModel = new WagerDetailCompleteDescriptionModel {
+                        SportName = sportName,
+                        HomeTeam = homeTeam,
+                        VisitorTeam = visitorTeam,
+                        MarketName = propSelected.MarketName,
+                        EventName = propSelected.Name,
+                        BaseLine = propSelected.BaseLine,
+                        Odds1 = propSelected.Odds1
+                    };
+
+                    string Description /*255*/ = "VegasLive #" + idlivewager + " [" + fixtureId + "] " + sportName + " / " + visitorTeam + " @ " + homeTeam;
+                    string CompleteDescription/*100*/ = FormatWagerDetailCompleteDescription(wagerDetailCompleteDescriptionModel);
 
                    var idlivewagerDetail = InsertLiveWagerDetail(idlivewager, fixtureId, propSelected.MarketId, propSelected.IdL1, propSelected.BaseLine, propSelected.Line1, (int)propSelected.Odds1, (decimal)propSelected.Price, propSelected.OriginalName, CompleteDescription, (int)riskAmount, (int)winAmount);
 
@@ -808,8 +819,18 @@ namespace WolfApiCore.DbTier
                     foreach (var item in betslipObj.Events)
                     {
                         foreach (var sel in item.Selections)
-                        {
-                            string itemDescription = "[" + item.FixtureId + "] " + item.SportName + " • " + item.VisitorTeam + "@" + item.HomeTeam + " • " + sel.MarketName + " • " + sel.Name + " • " + sel.BaseLine + " • " + sel.Odds1;
+                        { 
+                            WagerDetailCompleteDescriptionModel wagerDetailCompleteDescriptionModel = new WagerDetailCompleteDescriptionModel {
+                                SportName = item.SportName,
+                                HomeTeam = item.HomeTeam,
+                                VisitorTeam = item.VisitorTeam,
+                                MarketName = sel.MarketName,
+                                EventName = sel.Name,
+                                BaseLine = sel.BaseLine,
+                                Odds1 = sel.Odds1
+                            };
+
+                            string itemDescription = FormatWagerDetailCompleteDescription(wagerDetailCompleteDescriptionModel);
                             descriptionList.Add(itemDescription);
 
                             ListDetailWager.Add(InsertLiveWagerDetail(idlivewager, item.FixtureId, sel.MarketId, sel.IdL1, sel.BaseLine, sel.Line1, (int)sel.Odds1, (decimal)sel.Price, sel.OriginalName, itemDescription, (int)riskAmount, (int)winAmount));
@@ -1792,7 +1813,17 @@ namespace WolfApiCore.DbTier
 
         }//end test
 
+        private string FormatWagerDetailCompleteDescription(WagerDetailCompleteDescriptionModel wagerDetailDescription) {
+            
+            string completeDescription;
+            string? baseLine = wagerDetailDescription.BaseLine.IsNullOrEmpty() ? "" : $"{wagerDetailDescription.BaseLine} • " ;
+            string odds = wagerDetailDescription.Odds1 > 0 ? $"+{wagerDetailDescription.Odds1}" : $"{wagerDetailDescription.Odds1}";
 
+            completeDescription = $"{wagerDetailDescription.SportName} - {wagerDetailDescription.HomeTeam} vs {wagerDetailDescription.VisitorTeam} {wagerDetailDescription.MarketName} • {wagerDetailDescription.EventName} • {baseLine}{odds}";
+
+
+            return completeDescription;
+        }
 
     }//end class
 
