@@ -14,7 +14,7 @@ namespace WolfApiCore.DbTier
         private readonly string dgsConnString = "Data Source=192.168.11.29;Initial Catalog=DGSDATA;Persist Security Info=True;User ID=Payments;Password=p@yM3nts2701;TrustServerCertificate=True";
         private readonly string moverConnString = "Data Source=192.168.11.29;Initial Catalog=mover;Persist Security Info=True;User ID=live;Password=d_Ez*gIb8v7NogU;TrustServerCertificate=True";
         
-        private readonly AppConfig _appConfig = new AppConfig();
+        //private readonly AppConfig _appConfig = new AppConfig();
 
 
         public LSport_BetSlipObj ValidateSelectionsForWagers(LSport_BetSlipObj Betslip)
@@ -84,16 +84,16 @@ namespace WolfApiCore.DbTier
                 }
             }
 
-       
-
-            //var MinRiskAmount = (decimal)5;
-            //var MaxRiskAmount = (decimal)1000;
-            //var MaxWinAmount  = (decimal)2000;
 
 
-            var MinRiskAmount = _appConfig.MinRiskAmount;
-            var MaxRiskAmount = _appConfig.MaxRiskAmount;
-            var MaxWinAmount = _appConfig.MaxWinAmount;
+            var MinRiskAmount = (decimal)5;
+            var MaxRiskAmount = (decimal)1000;
+            var MaxWinAmount = (decimal)2000;
+
+
+            //var MinRiskAmount = _appConfig.MinRiskAmount;
+            //var MaxRiskAmount = _appConfig.MaxRiskAmount;
+            //var MaxWinAmount = _appConfig.MaxWinAmount;
 
 
             var PlayerLimitsParlay = GetPlayerLimitsParlay(Betslip.IdPlayer);
@@ -224,15 +224,15 @@ namespace WolfApiCore.DbTier
         {
             try
             {
-                //var limits = GetPlayerLimits(idplayer);
-                //var MinRiskAmount = (decimal)10;//500   **estos son los oldsvalues**
-                //var MaxRiskAmount = (decimal)1000;//100
-                //var MaxWinAmount = (decimal)2000;//100
+                var limits = GetPlayerLimits(idplayer);
+                var MinRiskAmount = (decimal)10;//500   **estos son los oldsvalues**
+                var MaxRiskAmount = (decimal)1000;//100
+                var MaxWinAmount = (decimal)2000;//100
 
 
-                var MinRiskAmount = _appConfig.MinRiskAmount; 
-                var MaxRiskAmount = _appConfig.MaxRiskAmount;
-                var MaxWinAmount = _appConfig.MaxWinAmount;
+                //var MinRiskAmount = _appConfig.MinRiskAmount; 
+                //var MaxRiskAmount = _appConfig.MaxRiskAmount;
+                //var MaxWinAmount = _appConfig.MaxWinAmount;
 
 
                 var PlayerLimitsStraight = GetPlayerLimitsStraight(idplayer, fixtureId);
