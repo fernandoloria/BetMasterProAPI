@@ -1819,10 +1819,15 @@ namespace WolfApiCore.DbTier
             string? baseLine = wagerDetailDescription.BaseLine.IsNullOrEmpty() ? "" : $"{wagerDetailDescription.BaseLine} • " ;
             string odds = wagerDetailDescription.Odds1 > 0 ? $"+{wagerDetailDescription.Odds1}" : $"{wagerDetailDescription.Odds1}";
 
-            completeDescription = $"{wagerDetailDescription.SportName} - {wagerDetailDescription.HomeTeam} vs {wagerDetailDescription.VisitorTeam} {wagerDetailDescription.MarketName} • {wagerDetailDescription.EventName} • {baseLine}{odds}";
+            string[]? homeTeamWords = wagerDetailDescription?.HomeTeam?.Split(' ');
+            string[]? visitorTeamWords = wagerDetailDescription?.VisitorTeam?.Split(' ');
 
+            string lastHomeTeamName = homeTeamWords?.Length == 1 ? homeTeamWords[0] : homeTeamWords![ homeTeamWords.Length - 2] + " " + homeTeamWords[ homeTeamWords.Length - 1];
+            string lastVisitorTeamName = visitorTeamWords?.Length == 1 ? visitorTeamWords[0] : visitorTeamWords![ visitorTeamWords.Length - 2] + " " + visitorTeamWords[ visitorTeamWords.Length - 1];
 
-            return completeDescription;
+            completeDescription = $"{wagerDetailDescription!.SportName} • {lastHomeTeamName} - {lastVisitorTeamName} • {wagerDetailDescription.MarketName} • {wagerDetailDescription.EventName}  {baseLine}{odds}";
+
+            return completeDescription.Replace(" ", "");
         }
 
     }//end class
