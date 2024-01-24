@@ -74,8 +74,8 @@ namespace WolfApiCore.DbTier
                 {
                     foreach (var item in req)
                     {
-                        string sql = "exec sp_MGL_SetProfileLimits @AgentId ,@IdWagerType ,@SportId ,@LeagueId, @SportName, @LeagueName, @FixtureId ,@MaxWager ,@MinWager ,@MaxPayout ,@MinPayout";
-                        var values = new { item.AgentId, item.IdWagerType, item.SportId, item.LeagueId, item.SportName, item.LeagueName, item.FixtureId, item.MaxWager, item.MinWager, item.MaxPayout, item.MinPayout };
+                        string sql = "exec sp_MGL_SetProfileLimits @AgentId ,@IdWagerType ,@SportId ,@LeagueId, @SportName, @LeagueName, @FixtureId ,@MaxWager ,@MinWager ,@MaxPayout ,@MinPayout  ,@MinPrice ,@MaxPrice ,@TotAmtGame";
+                        var values = new { item.AgentId, item.IdWagerType, item.SportId, item.LeagueId, item.SportName, item.LeagueName, item.FixtureId, item.MaxWager, item.MinWager, item.MaxPayout, item.MinPayout, item.MinPrice, item.MaxPrice, item.TotAmtGame };
 
                         using var connection = new SqlConnection(moverConnString);
                         List<GetAgentHierarchyResp> HierarchyNodes = GetAgentHierarchy(new GetAgentHierarchyReq() { IdAgent = item.AgentId });
@@ -87,7 +87,7 @@ namespace WolfApiCore.DbTier
                                 {
                                     if (item.AgentId == node.AgentID)
                                     {
-                                        _ = connection.Query<ProfileLimitsResp>(sql, new { node.AgentID, item.IdWagerType, item.SportId, item.LeagueId, item.SportName, item.LeagueName, item.FixtureId, item.MaxWager, item.MinWager, item.MaxPayout, item.MinPayout });
+                                        _ = connection.Query<ProfileLimitsResp>(sql, new { node.AgentID, item.IdWagerType, item.SportId, item.LeagueId, item.SportName, item.LeagueName, item.FixtureId, item.MaxWager, item.MinWager, item.MaxPayout, item.MinPayout, item.MinPrice, item.MaxPrice, item.TotAmtGame });
                                         limitsMaster.AgentId = node.AgentID;
                                         resp.Add(new LimitsRightsVerificationResp()
                                         {
@@ -97,7 +97,10 @@ namespace WolfApiCore.DbTier
                                             Applied = true,
                                             MaxWager = item.MaxWager,
                                             MinWager = item.MinWager,
-                                            MaxPayout = item.MaxPayout
+                                            MaxPayout = item.MaxPayout,
+                                            MinPrice = item.MinPrice,
+                                            MaxPrice =item.MaxPrice,
+                                            TotAmtGame= item.TotAmtGame
                                         });
                                     }
                                     else
@@ -115,6 +118,11 @@ namespace WolfApiCore.DbTier
                                             MinPayout = item.MinPayout,
                                             MaxWager = item.MaxWager,
                                             MinWager = item.MinWager,
+
+                                            MinPrice = item.MinPrice,
+                                            MaxPrice = item.MaxPrice,
+                                            TotAmtGame = item.TotAmtGame,
+
                                             ModifiedAt = DateTime.Now
                                         };
                                         var ListReq = new List<GetProfileLimitsReq>
@@ -128,12 +136,17 @@ namespace WolfApiCore.DbTier
                                             //{
 
                                             //}
-                                            _ = connection.Query<ProfileLimitsResp>(sql, new { node.AgentID, item.IdWagerType, item.SportId, item.LeagueId, item.SportName, item.LeagueName, item.FixtureId, item.MaxWager, item.MinWager, item.MaxPayout, item.MinPayout });
+                                            _ = connection.Query<ProfileLimitsResp>(sql, new { node.AgentID, item.IdWagerType, item.SportId, item.LeagueId, item.SportName, item.LeagueName, item.FixtureId, item.MaxWager, item.MinWager, item.MaxPayout, item.MinPayout, item.MinPrice, item.MaxPrice, item.TotAmtGame });
                                             limitsMaster.AgentId = node.AgentID;
                                             limitsMaster.Applied = true;
                                             limitsMaster.MaxWager = item.MaxWager;
                                             limitsMaster.MinWager = item.MinWager;
                                             limitsMaster.MaxPayout = item.MaxPayout;
+
+                                            limitsMaster.MinPrice = item.MinPrice;
+                                            limitsMaster.MaxPrice = item.MaxPrice;
+                                            limitsMaster.TotAmtGame = item.TotAmtGame;
+
                                             resp.Add(new LimitsRightsVerificationResp()
                                             {
                                                 AgentId = node.AgentID,
@@ -142,17 +155,25 @@ namespace WolfApiCore.DbTier
                                                 Applied = true,
                                                 MaxWager = item.MaxWager,
                                                 MinWager = item.MinWager,
-                                                MaxPayout = item.MaxPayout
+                                                MaxPayout = item.MaxPayout,
+                                                MinPrice = item.MinPrice,
+                                                MaxPrice = item.MaxPrice,
+                                                TotAmtGame = item.TotAmtGame,
                                             });
                                         }
                                         else
                                         {
-                                            _ = connection.Query<ProfileLimitsResp>(sql, new { node.AgentID, item.IdWagerType, item.SportId, item.LeagueId, item.SportName, item.LeagueName, item.FixtureId, item.MaxWager, item.MinWager, item.MaxPayout, item.MinPayout });
+                                            _ = connection.Query<ProfileLimitsResp>(sql, new { node.AgentID, item.IdWagerType, item.SportId, item.LeagueId, item.SportName, item.LeagueName, item.FixtureId, item.MaxWager, item.MinWager, item.MaxPayout, item.MinPayout, item.MinPrice, item.MaxPrice, item.TotAmtGame });
                                             limitsMaster.AgentId = node.AgentID;
                                             limitsMaster.Applied = true;
                                             limitsMaster.MaxWager = item.MaxWager;
                                             limitsMaster.MinWager = item.MinWager;
                                             limitsMaster.MaxPayout = item.MaxPayout;
+
+                                            limitsMaster.MinPrice = item.MinPrice;
+                                            limitsMaster.MaxPrice = item.MaxPrice;
+                                            limitsMaster.TotAmtGame = item.TotAmtGame;
+
                                             resp.Add(new LimitsRightsVerificationResp()
                                             {
                                                 AgentId = node.AgentID,
@@ -161,7 +182,10 @@ namespace WolfApiCore.DbTier
                                                 Applied = true,
                                                 MaxWager = item.MaxWager,
                                                 MinWager = item.MinWager,
-                                                MaxPayout = item.MaxPayout
+                                                MaxPayout = item.MaxPayout,
+                                                MinPrice = item.MinPrice,
+                                                MaxPrice = item.MaxPrice,
+                                                TotAmtGame = item.TotAmtGame,
                                             });
                                         }
                                     }
@@ -170,12 +194,15 @@ namespace WolfApiCore.DbTier
                             case 16:
                                 foreach (var node in HierarchyNodes)
                                 {
-                                    _ = connection.Query<ProfileLimitsResp>(sql, new { node.AgentID, item.IdWagerType, item.SportId, item.LeagueId, item.SportName, item.LeagueName, item.FixtureId, item.MaxWager, item.MinWager, item.MaxPayout, item.MinPayout });
+                                    _ = connection.Query<ProfileLimitsResp>(sql, new { node.AgentID, item.IdWagerType, item.SportId, item.LeagueId, item.SportName, item.LeagueName, item.FixtureId, item.MaxWager, item.MinWager, item.MaxPayout, item.MinPayout, item.MinPrice, item.MaxPrice, item.TotAmtGame });
                                     limitsMaster.AgentId = node.AgentID;
                                     limitsMaster.Applied = true;
                                     limitsMaster.MaxWager = item.MaxWager;
                                     limitsMaster.MinWager = item.MinWager;
                                     limitsMaster.MaxPayout = item.MaxPayout;
+                                    limitsMaster.MinPrice = item.MinPrice;
+                                    limitsMaster.MaxPrice = item.MaxPrice;
+                                    limitsMaster.TotAmtGame = item.TotAmtGame;
                                     resp.Add(new LimitsRightsVerificationResp()
                                     {
                                         AgentId = node.AgentID,
@@ -184,7 +211,10 @@ namespace WolfApiCore.DbTier
                                         Applied = true,
                                         MaxWager = item.MaxWager,
                                         MinWager = item.MinWager,
-                                        MaxPayout = item.MaxPayout
+                                        MaxPayout = item.MaxPayout,
+                                        MinPrice = item.MinPrice,
+                                        MaxPrice = item.MaxPrice,
+                                        TotAmtGame = item.TotAmtGame,
                                     });
                                 }
                                 break;
@@ -198,6 +228,9 @@ namespace WolfApiCore.DbTier
                                     limitsMaster.MaxWager = item.MaxWager;
                                     limitsMaster.MinWager = item.MinWager;
                                     limitsMaster.MaxPayout = item.MaxPayout;
+                                    limitsMaster.MinPrice = item.MinPrice;
+                                    limitsMaster.MaxPrice = item.MaxPrice;
+                                    limitsMaster.TotAmtGame = item.TotAmtGame;
                                     resp.Add(new LimitsRightsVerificationResp()
                                     {
                                         AgentId = item.AgentId,
@@ -206,7 +239,11 @@ namespace WolfApiCore.DbTier
                                         Applied = true,
                                         MaxWager = item.MaxWager,
                                         MinWager = item.MinWager,
-                                        MaxPayout = item.MaxPayout
+                                        MaxPayout = item.MaxPayout,
+
+                                        MinPrice = item.MinPrice,
+                                        MaxPrice = item.MaxPrice,
+                                        TotAmtGame = item.TotAmtGame,
                                     });
                                 }
                                 else
@@ -219,7 +256,11 @@ namespace WolfApiCore.DbTier
                                         Applied = limitsMaster.Applied,
                                         MaxWager = item.MaxWager,
                                         MinWager = item.MinWager,
-                                        MaxPayout = item.MaxPayout
+                                        MaxPayout = item.MaxPayout,
+
+                                        MinPrice = item.MinPrice,
+                                        MaxPrice = item.MaxPrice,
+                                        TotAmtGame = item.TotAmtGame,
                                     });
                                 }
                                 break;
@@ -233,7 +274,11 @@ namespace WolfApiCore.DbTier
                                     Applied = limitsMaster.Applied,
                                     MaxWager = item.MaxWager,
                                     MinWager = item.MinWager,
-                                    MaxPayout = item.MaxPayout
+                                    MaxPayout = item.MaxPayout,
+
+                                    MinPrice = item.MinPrice,
+                                    MaxPrice = item.MaxPrice,
+                                    TotAmtGame = item.TotAmtGame,
                                 });
                                 break;
                         }
@@ -250,7 +295,10 @@ namespace WolfApiCore.DbTier
                     Applied = false,
                     MaxWager = 0,
                     MinWager = 0,
-                    MaxPayout = 0
+                    MaxPayout = 0,
+                    MinPrice = 0,
+                    MaxPrice = 0,
+                    TotAmtGame = 0,
                 });
             }
             return resp;
@@ -533,7 +581,7 @@ namespace WolfApiCore.DbTier
                 {
                     foreach (var oLimit in req)
                     {
-                        var values = new { oLimit.PlayerId, oLimit.IdWagerType, oLimit.SportId, oLimit.LeagueId, oLimit.FixtureId };
+                        var values = new { oLimit.PlayerId, oLimit.IdWagerType, oLimit.SportId, oLimit.LeagueId, oLimit.FixtureId, oLimit.MinPrice, oLimit.MaxPrice, oLimit.TotAmtGame };
                         using var connection = new SqlConnection(moverConnString);
                         List<ProfileLimitsByPlayerResp> ProfileLimitsRespAUX = connection.Query<ProfileLimitsByPlayerResp>(sql, values).ToList();
                         if (ProfileLimitsRespAUX.Count() > 0)
@@ -557,6 +605,12 @@ namespace WolfApiCore.DbTier
                                 MinWager = DGSDefaultLimits.OnlineMinWager,
                                 MinPayout = 0,
                                 MaxPayout = DGSDefaultLimits.PL_MaxPayout,
+
+                                MinPrice = oLimit.MinPrice,
+                                MaxPrice = oLimit.MaxPrice,
+                                TotAmtGame = oLimit.TotAmtGame,
+
+
                                 ModifiedAt = DateTime.Now
                             };
                             ProfileLimitsResp.Add(oProfileLimitsDGSResp);
@@ -575,7 +629,7 @@ namespace WolfApiCore.DbTier
         public LimitsRightsVerificationResp SetProfileLimitsByPlayer(List<ProfileLimitsByPlayerReq> req)
         {
             LimitsRightsVerificationResp Resp = null;
-            string sql = "exec sp_MGL_SetProfileLimitsByPlayer  @PlayerId, @IdWagerType ,@SportId ,@LeagueId, @SportName, @LeagueName, @FixtureId, @MaxWager, @MinWager, @MaxPayout, @MinPayout";
+            string sql = "exec sp_MGL_SetProfileLimitsByPlayer  @PlayerId, @IdWagerType ,@SportId ,@LeagueId, @SportName, @LeagueName, @FixtureId, @MaxWager, @MinWager, @MaxPayout, @MinPayout  ,@MinPrice ,@MaxPrice ,@TotAmtGame";
 
             try
             {
@@ -585,7 +639,7 @@ namespace WolfApiCore.DbTier
                     {
                         if (oLimit.SportId != null)
                         {
-                            var values = new { oLimit.PlayerId, oLimit.IdWagerType, oLimit.SportId, oLimit.LeagueId, oLimit.SportName, oLimit.LeagueName, oLimit.FixtureId, oLimit.MaxWager, oLimit.MinWager, oLimit.MaxPayout, oLimit.MinPayout };
+                            var values = new { oLimit.PlayerId, oLimit.IdWagerType, oLimit.SportId, oLimit.LeagueId, oLimit.SportName, oLimit.LeagueName, oLimit.FixtureId, oLimit.MaxWager, oLimit.MinWager, oLimit.MaxPayout, oLimit.MinPayout, oLimit.MinPrice, oLimit.MaxPrice, oLimit.TotAmtGame };
                             using var connection = new SqlConnection(moverConnString);
                             _ = connection.Query<LimitsRightsVerificationResp>(sql, values);
 
@@ -596,7 +650,17 @@ namespace WolfApiCore.DbTier
                                 Message = "Limits Applied Successfully!",
                                 MaxWager = oLimit.MaxWager,
                                 MinWager = oLimit.MinWager,
-                                MaxPayout = oLimit.MaxPayout
+                                MaxPayout = oLimit.MaxPayout,
+                                MinPrice = oLimit.MinPrice,
+                                MaxPrice = oLimit.MaxPrice,
+                                TotAmtGame = oLimit.TotAmtGame,
+
+                       
+                               
+                               
+                               
+
+
                             };
                         }
                         else
@@ -608,7 +672,10 @@ namespace WolfApiCore.DbTier
                                 Message = "Error applying limits, SportId cannot be null!",
                                 MaxWager = oLimit.MaxWager,
                                 MinWager = oLimit.MinWager,
-                                MaxPayout = oLimit.MaxPayout
+                                MaxPayout = oLimit.MaxPayout,
+                                MinPrice = oLimit.MinPrice,
+                                MaxPrice = oLimit.MaxPrice,
+                                TotAmtGame = oLimit.TotAmtGame,
                             };
                         }
                     }

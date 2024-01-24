@@ -126,6 +126,11 @@
             public decimal MinWager { get; set; }
             public decimal MaxPayout { get; set; }
             public decimal MinPayout { get; set; }
+
+            public decimal MinPrice { get; set; }
+            public decimal MaxPrice { get; set; }
+            public decimal TotAmtGame { get; set; }
+
             public DateTime ModifiedAt { get; set; }
         }
 
@@ -143,6 +148,10 @@
             public decimal MinWager { get; set; }
             public decimal MaxPayout { get; set; }
             public decimal MinPayout { get; set; }
+            public decimal MinPrice { get; set; }
+            public decimal MaxPrice { get; set; }
+            public decimal TotAmtGame { get; set; }
+
         }
 
         public class ProfileLimitsResp
@@ -159,6 +168,9 @@
             public decimal MinWager { get; set; }
             public decimal MaxPayout { get; set; }
             public decimal MinPayout { get; set; }
+            public decimal MinPrice { get; set; }
+            public decimal MaxPrice { get; set; }
+            public decimal TotAmtGame { get; set; }
             public DateTime ModifiedAt { get; set; }
         }
 
@@ -171,6 +183,9 @@
             public decimal MaxWager { get; set; }
             public decimal MinWager { get; set; }
             public decimal MaxPayout { get; set; }
+            public decimal MinPrice { get; set; }
+            public decimal MaxPrice { get; set; }
+            public decimal TotAmtGame { get; set; }
         }
 
         public class GetPlayerListReq
@@ -201,6 +216,9 @@
             public decimal MinWager { get; set; }
             public decimal MaxPayout { get; set; }
             public decimal MinPayout { get; set; }
+            public decimal MinPrice { get; set; }
+            public decimal MaxPrice { get; set; }
+            public decimal TotAmtGame { get; set; }
         }
 
         public class ProfileLimitsByPlayerResp
@@ -217,6 +235,11 @@
             public decimal MinWager { get; set; }
             public decimal MaxPayout { get; set; }
             public decimal MinPayout { get; set; }
+
+            public decimal MinPrice { get; set; }
+            public decimal MaxPrice { get; set; }
+            public decimal TotAmtGame { get; set; }
+
             public DateTime ModifiedAt { get; set; }
         }
 
