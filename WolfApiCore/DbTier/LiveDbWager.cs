@@ -79,6 +79,12 @@ namespace WolfApiCore.DbTier
                                 propSelected.BsBetResult = betResult.BsBetResult;
                                 propSelected.BsTicketNumber = betResult.BsTicketNumber;
 
+
+                            
+
+
+
+
                             }
                         }
                     }
@@ -91,33 +97,82 @@ namespace WolfApiCore.DbTier
             var MaxRiskAmount = (decimal)1000;
             var MaxWinAmount = (decimal)2000;
 
+            var MinPriceAmount = (decimal)-1000;
+            var MaxPriceAmount = (decimal)1000;
+            var TotAmtPerGame = (decimal)500;
+
 
             //var MinRiskAmount = _appConfig.MinRiskAmount;
             //var MaxRiskAmount = _appConfig.MaxRiskAmount;
             //var MaxWinAmount = _appConfig.MaxWinAmount;
 
 
+
+
             var PlayerLimitsParlay = GetPlayerLimitsParlay(Betslip.IdPlayer);
             var AgentLimitsParlay = GetAgentLimitsParlay(Betslip.IdPlayer);
+
+
 
             if (PlayerLimitsParlay != null)
             {
                 MinRiskAmount = PlayerLimitsParlay.MinWager;
                 MaxRiskAmount = PlayerLimitsParlay.MaxWager;
                 MaxWinAmount = PlayerLimitsParlay.MaxPayout;
+
+                MinPriceAmount = PlayerLimitsParlay.MinPrice;
+                MaxPriceAmount = PlayerLimitsParlay.MaxPrice;
+                TotAmtPerGame = PlayerLimitsParlay.TotAmtGame;
             }
-            else if(AgentLimitsParlay != null)
+            else if (AgentLimitsParlay != null)
             {
                 MinRiskAmount = AgentLimitsParlay.MinWager;
                 MaxRiskAmount = AgentLimitsParlay.MaxWager;
                 MaxWinAmount = AgentLimitsParlay.MaxPayout;
+
+                MinPriceAmount = AgentLimitsParlay.MinPrice;
+                MaxPriceAmount = AgentLimitsParlay.MaxPrice;
+                TotAmtPerGame = AgentLimitsParlay.TotAmtGame;
             }
+
 
 
             if (validForParlay && Betslip.ParlayRiskAmount > 0 && Betslip.ParlayRiskAmount >= MinRiskAmount)
             {
 
                 //var dailyTotal = GetTodayWinAmount(Betslip.IdPlayer);
+
+                foreach (var game in Betslip.Events)
+                {
+
+                    var TotalAmountValue = GetTotalValuePerGame(Betslip.IdPlayer, game.FixtureId) + Betslip.ParlayRiskAmount;
+
+
+                    if (TotalAmountValue > TotAmtPerGame)
+                    {
+                        Betslip.ParlayBetResult = -50;
+                        Betslip.ParlayMessage = $"Ticket exceeds bet per game. Max = {TotAmtPerGame}";
+                    }
+
+                    foreach (var propSelected in game.Selections)
+                    {
+
+                        if (propSelected.Odds1 < MinPriceAmount)
+                        {
+                            Betslip.ParlayBetResult = -50;
+                            Betslip.ParlayMessage = $"Ticket exceeds min price. Min = {MinPriceAmount}";
+                        }
+
+                        else if (propSelected.Odds1 > MaxPriceAmount)
+                        {
+                            Betslip.ParlayBetResult = -50;
+                            Betslip.ParlayMessage = $"Ticket exceeds max price. Max = {MaxPriceAmount}";
+                        }
+
+                    }
+
+                }
+
 
                 if (Betslip.ParlayRiskAmount >= MaxRiskAmount)
                 {
@@ -231,6 +286,11 @@ namespace WolfApiCore.DbTier
                 var MaxWinAmount = (decimal)2000;//100
 
 
+
+                var MinPriceAmount = (decimal)-1000;
+                var MaxPriceAmount = (decimal)1000;
+                var TotAmtPerGame = (decimal)500;
+
                 //var MinRiskAmount = _appConfig.MinRiskAmount; 
                 //var MaxRiskAmount = _appConfig.MaxRiskAmount;
                 //var MaxWinAmount = _appConfig.MaxWinAmount;
@@ -238,17 +298,29 @@ namespace WolfApiCore.DbTier
 
                 var PlayerLimitsStraight = GetPlayerLimitsStraight(idplayer, fixtureId);
                 var AgentLimitsStraight = GetAgentLimitsStraight(idplayer, fixtureId);
+
+                var TotalAmountValue = GetTotalValuePerGame(idplayer, fixtureId) + originalProp.BsRiskAmount;
+
                 if (PlayerLimitsStraight != null)
                 {
                     MinRiskAmount = PlayerLimitsStraight.MinWager;
                     MaxRiskAmount = PlayerLimitsStraight.MaxWager;
                     MaxWinAmount = PlayerLimitsStraight.MaxPayout;
+
+                    MinPriceAmount = PlayerLimitsStraight.MinPrice;
+                    MaxPriceAmount = PlayerLimitsStraight.MaxPrice;
+                    TotAmtPerGame = PlayerLimitsStraight.TotAmtGame;
                 }
                 else if (AgentLimitsStraight != null)
                 {
                     MinRiskAmount = AgentLimitsStraight.MinWager;
                     MaxRiskAmount = AgentLimitsStraight.MaxWager;
                     MaxWinAmount = AgentLimitsStraight.MaxPayout;
+
+
+                    MinPriceAmount = AgentLimitsStraight.MinPrice;
+                    MaxPriceAmount = AgentLimitsStraight.MaxPrice;
+                    TotAmtPerGame = AgentLimitsStraight.TotAmtGame;
                 }
 
                 if (!GetPlayerInfo(idplayer).Access)
@@ -301,9 +373,37 @@ namespace WolfApiCore.DbTier
                         //    originalProp.BsMessage = "Exceeded Daily Total Win amount.";
                         //}
                         //else {
-                            if (originalProp.Odds1 < 0 && originalProp.BsRiskAmount > 0)
+
+
+                   
+
+
+                        if (originalProp.Odds1 < 0 && originalProp.BsRiskAmount > 0)
+                        {
+
+
+                            if (originalProp.Odds1 < MinPriceAmount )
                             {
-                                if (originalProp.BsWinAmount < MinRiskAmount)
+                                originalProp.StatusForWager = 5;
+                                originalProp.BsBetResult = -50;
+                                originalProp.BsMessage = $"Ticket exceeds min price. Min = {MinPriceAmount}";
+                            }
+
+                            else if ( originalProp.Odds1 > MaxPriceAmount)
+                            {
+                                originalProp.StatusForWager = 5;
+                                originalProp.BsBetResult = -50;
+                                originalProp.BsMessage = $"Ticket exceeds max price. Max = {MaxPriceAmount}";
+                            }
+
+                            else if (TotalAmountValue > TotAmtPerGame)
+                            {
+                                originalProp.StatusForWager = 5;
+                                originalProp.BsBetResult = -50;
+                                originalProp.BsMessage = $"Ticket exceeds bet per game. Max = {TotAmtPerGame}";
+                            }
+
+                            else if (originalProp.BsWinAmount < MinRiskAmount)
                                 {
                                     originalProp.StatusForWager = 5; 
                                     originalProp.BsBetResult = -50;
@@ -323,8 +423,31 @@ namespace WolfApiCore.DbTier
                                 }
                             }
                             else if (originalProp.BsRiskAmount > 0)
+                        {
+
+
+                            if (originalProp.Odds1 < MinPriceAmount)
                             {
-                                if (originalProp.BsRiskAmount < MinRiskAmount)
+                                originalProp.StatusForWager = 5;
+                                originalProp.BsBetResult = -50;
+                                originalProp.BsMessage = $"Ticket exceeds min price. Min = {MinPriceAmount}";
+                            }
+
+                            else if (originalProp.Odds1 > MaxPriceAmount)
+                            {
+                                originalProp.StatusForWager = 5;
+                                originalProp.BsBetResult = -50;
+                                originalProp.BsMessage = $"Ticket exceeds max price. Max = {MaxPriceAmount}";
+                            }
+
+                            else if (TotalAmountValue > TotAmtPerGame)
+                            {
+                                originalProp.StatusForWager = 5;
+                                originalProp.BsBetResult = -50;
+                                originalProp.BsMessage = $"Ticket exceeds bet per game. Max = {TotAmtPerGame}";
+                            }
+
+                            if (originalProp.BsRiskAmount < MinRiskAmount)
                                 {
                                     originalProp.StatusForWager = 5; 
                                     originalProp.BsBetResult = -50;
@@ -380,7 +503,10 @@ namespace WolfApiCore.DbTier
                 IsSportLimit = false,
                 MinWager = 0,
                 MaxWager = 0,
-                MaxPayout = 0
+                MaxPayout = 0,
+                MinPrice = 0,   
+                MaxPrice = 0,
+                TotAmtGame = 0,
             };
             try
             {
@@ -402,6 +528,11 @@ namespace WolfApiCore.DbTier
                     resp.MinWager = oLimitsSport.MinWager;
                     resp.MaxWager = oLimitsSport.MaxWager;
                     resp.MaxPayout = oLimitsSport.MaxPayout;
+
+
+                    resp. MinPrice = oLimitsSport.MinPrice;
+                    resp.MaxPrice = oLimitsSport.MaxPrice;
+                    resp.TotAmtGame = oLimitsSport.TotAmtGame;
                 }
                 else
                 {
@@ -447,7 +578,10 @@ namespace WolfApiCore.DbTier
                 IsSportLimit = false,
                 MinWager = 0,
                 MaxWager = 0,
-                MaxPayout = 0
+                MaxPayout = 0,
+                MinPrice = 0,
+                MaxPrice = 0,
+                TotAmtGame = 0,
             };
             try
             {
@@ -470,6 +604,10 @@ namespace WolfApiCore.DbTier
                     resp.MinWager = oLimitsSport.MinWager;
                     resp.MaxWager = oLimitsSport.MaxWager;
                     resp.MaxPayout = oLimitsSport.MaxPayout;
+
+                    resp.MinPrice = oLimitsSport.MinPrice;
+                    resp.MaxPrice = oLimitsSport.MaxPrice;
+                    resp.TotAmtGame = oLimitsSport.TotAmtGame;
                 }
                 else
                 {
@@ -485,6 +623,12 @@ namespace WolfApiCore.DbTier
                         resp.MinWager = oLimitsLeague.MinWager;
                         resp.MaxWager = oLimitsLeague.MaxWager;
                         resp.MaxPayout = oLimitsLeague.MaxPayout;
+
+
+
+                        resp.MinPrice = oLimitsLeague.MinPrice;
+                        resp.MaxPrice = oLimitsLeague.MaxPrice;
+                        resp.TotAmtGame = oLimitsLeague.TotAmtGame;
                     }
                     else
                     {
@@ -498,6 +642,24 @@ namespace WolfApiCore.DbTier
             }
             return resp;
         }
+
+
+
+        private int GetTotalValuePerGame(int PlayerId, int FixtureId)
+        {
+            var limits = 0;
+            try
+            {
+                using var connection = new SqlConnection(moverConnString);
+                limits = connection.Query<int>(@"SELECT [dbo].[fn_TotalAmountPlayed] (@PlayerId,@FixtureId)", new { PlayerId, FixtureId }).FirstOrDefault();
+            }
+            catch (Exception ex)
+            {
+                _ = ex.Message;
+            }
+            return limits;
+        }
+
 
         private AgentLimitsHierarchyStraight GetAgentLimitsStraight(int PlayerId, int FixtureId)
         {
@@ -514,7 +676,10 @@ namespace WolfApiCore.DbTier
                 IsSportLimit = false,
                 MinWager = 0,
                 MaxWager = 0,
-                MaxPayout = 0
+                MaxPayout = 0,
+                MinPrice = 0,
+                MaxPrice = 0,
+                TotAmtGame = 0,
             };
             try
             {
@@ -537,6 +702,10 @@ namespace WolfApiCore.DbTier
                     resp.MinWager = oLimitsSport.MinWager;
                     resp.MaxWager = oLimitsSport.MaxWager;
                     resp.MaxPayout = oLimitsSport.MaxPayout;
+
+                    resp.MinWager = oLimitsSport.MinWager;
+                    resp.MaxWager = oLimitsSport.MaxWager;
+                    resp.MaxPayout = oLimitsSport.MaxPayout;
                 }
                 else
                 {
@@ -549,6 +718,10 @@ namespace WolfApiCore.DbTier
                         resp.IsLeagueLimit = true;
                         resp.SportId = GameInfo.SportId;
                         resp.LeagueId = GameInfo.LeagueId;
+                        resp.MinWager = oLimitsLeague.MinWager;
+                        resp.MaxWager = oLimitsLeague.MaxWager;
+                        resp.MaxPayout = oLimitsLeague.MaxPayout;
+
                         resp.MinWager = oLimitsLeague.MinWager;
                         resp.MaxWager = oLimitsLeague.MaxWager;
                         resp.MaxPayout = oLimitsLeague.MaxPayout;
@@ -575,6 +748,10 @@ namespace WolfApiCore.DbTier
                         resp.MinWager = oLimitsSportMaster.MinWager;
                         resp.MaxWager = oLimitsSportMaster.MaxWager;
                         resp.MaxPayout = oLimitsSportMaster.MaxPayout;
+
+                        resp.MinWager = oLimitsSportMaster.MinWager;
+                        resp.MaxWager = oLimitsSportMaster.MaxWager;
+                        resp.MaxPayout = oLimitsSportMaster.MaxPayout;
                     }
                     else
                     {
@@ -587,6 +764,11 @@ namespace WolfApiCore.DbTier
                             resp.IsLeagueLimit = true;
                             resp.SportId = GameInfo.SportId;
                             resp.LeagueId = GameInfo.LeagueId;
+                            resp.MinWager = oLimitsLeagueMaster.MinWager;
+                            resp.MaxWager = oLimitsLeagueMaster.MaxWager;
+                            resp.MaxPayout = oLimitsLeagueMaster.MaxPayout;
+
+
                             resp.MinWager = oLimitsLeagueMaster.MinWager;
                             resp.MaxWager = oLimitsLeagueMaster.MaxWager;
                             resp.MaxPayout = oLimitsLeagueMaster.MaxPayout;
@@ -621,7 +803,11 @@ namespace WolfApiCore.DbTier
                 IsSportLimit = false,
                 MinWager = 0,
                 MaxWager = 0,
-                MaxPayout = 0
+                MaxPayout = 0,
+
+                MinPrice = 0,
+                MaxPrice = 0,
+                TotAmtGame = 0,
             };
             try
             {
@@ -645,6 +831,10 @@ namespace WolfApiCore.DbTier
                     resp.MinWager = oLimitsSport.MinWager;
                     resp.MaxWager = oLimitsSport.MaxWager;
                     resp.MaxPayout = oLimitsSport.MaxPayout;
+
+                    resp.MinPrice = oLimitsSport.MinPrice;
+                    resp.MaxPrice = oLimitsSport.MaxPrice;
+                    resp.TotAmtGame = oLimitsSport.TotAmtGame;
                 }
                 else
                 {
@@ -677,8 +867,13 @@ namespace WolfApiCore.DbTier
                             IsSportLimit = false,
                             MinWager = oLimitsSportMaster.MinWager,
                             MaxWager = oLimitsSportMaster.MaxWager,
-                            MaxPayout = oLimitsSportMaster.MaxPayout
-                        };
+                            MaxPayout = oLimitsSportMaster.MaxPayout,
+
+                            MinPrice = oLimitsSportMaster.MinWager,
+                            MaxPrice = oLimitsSportMaster.MaxWager,
+                            TotAmtGame = oLimitsSportMaster.MaxPayout,
+
+                    };
                     }
                     else
                     {
@@ -1865,6 +2060,9 @@ namespace WolfApiCore.DbTier
         public decimal MinWager { get; set; }
         public decimal MaxWager { get; set; }
         public decimal MaxPayout { get; set; }
+        public decimal MinPrice { get; set; }
+        public decimal MaxPrice { get; set; }
+        public decimal TotAmtGame { get; set; }
     }
 
     public class AgentLimitsHierarchyParlay
@@ -1878,6 +2076,9 @@ namespace WolfApiCore.DbTier
         public decimal MinWager { get; set; }
         public decimal MaxWager { get; set; }
         public decimal MaxPayout { get; set; }
+        public decimal MinPrice { get; set; }
+        public decimal MaxPrice { get; set; }
+        public decimal TotAmtGame { get; set; }
     }
 
     public class AgentLimitsHierarchyStraight
@@ -1891,6 +2092,9 @@ namespace WolfApiCore.DbTier
         public decimal MinWager { get; set; }
         public decimal MaxWager { get; set; }
         public decimal MaxPayout { get; set; }
+        public decimal MinPrice { get; set; }
+        public decimal MaxPrice { get; set; }
+        public decimal TotAmtGame { get; set; }
     }
 
     public class PlayerLimitsHierarchyParlay
@@ -1903,6 +2107,9 @@ namespace WolfApiCore.DbTier
         public decimal MinWager { get; set; }
         public decimal MaxWager { get; set; }
         public decimal MaxPayout { get; set; }
+        public decimal MinPrice { get; set; }
+        public decimal MaxPrice { get; set; }
+        public decimal TotAmtGame { get; set; }
     }
 
     public class PlayerTotalWagerDto
