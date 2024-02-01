@@ -3,8 +3,9 @@ namespace WolfApiCore.Utilities
     public class Base64Service
     {
         public string DecodeBase64(string base64String) {
+            string nullTerm = "null";
 
-            if( string.IsNullOrEmpty(base64String) ) {
+            if( string.IsNullOrEmpty(base64String) || base64String.Equals(nullTerm) ) {
                 return string.Empty;
             }
 
