@@ -2,6 +2,7 @@
 using WolfApiCore.DbTier;
 using WolfApiCore.LSportApi;
 using WolfApiCore.Models;
+using WolfApiCore.Utilities;
 
 namespace WolfApiCore.Controllers
 {
@@ -11,10 +12,12 @@ namespace WolfApiCore.Controllers
     {
 
         private readonly IConfiguration _configuration;
+        private readonly Base64Service _base64Service;
 
-        public LinesController(IConfiguration configuration)
+        public LinesController(IConfiguration configuration, Base64Service base64Service)
         {
             _configuration = configuration;
+            _base64Service = base64Service;
         }
 
         [HttpGet("GetGamesAndLines/{idplayer}")]
@@ -72,6 +75,45 @@ namespace WolfApiCore.Controllers
         {
            // var connString = _configuration.GetValue<string>("SrvSettings:DbConnMover");
             new LiveDbWager().UpdateWagerDetailResult(values.IdLiveWagerDetail, values.IdLiveWager, values.Result, values.IdUser);
+        }
+
+        [HttpGet("GetPlayerInfoByIdCall/{base64Code}")]
+        public IActionResult GetPlayerInfoByIdCall(string base64Code)
+        {
+            if( !_base64Service.IsBase64String(base64Code) ) {
+                return BadRequest(new
+                    {
+                        code = "UNKNOWN_ERROR",
+                        message = "An unknown error occurred."
+                    });
+            }
+
+            string idPlayerAndIdCall = _base64Service.DecodeBase64(base64Code);
+            string[] idsOfPlayer = idPlayerAndIdCall.Split('|');
+
+            string idPlayer = idsOfPlayer[0];
+            string idCall = idsOfPlayer[1];
+
+            if ( !int.TryParse(idPlayer, out var parsedIdPlayer) || !int.TryParse(idCall, out var parsedIdCall) )
+            {
+                return Conflict(new
+                {       
+                    code = "WRONG_INT_FORMAT",
+                    message = "The value provided is not a valid integer"
+                });
+            }
+
+            PlayerInfoDto? player = new LiveDbWager().GetPlayerInfo(parsedIdPlayer, parsedIdCall);
+
+            if ( player is null )
+            {
+               return Unauthorized(new {
+                    code = "UNKNOWN_ERROR",
+                    message = "An unknown error occurred."
+               }); 
+            }
+
+            return Ok(player);
         }
 
 
