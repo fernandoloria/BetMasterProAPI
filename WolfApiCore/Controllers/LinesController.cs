@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
 using WolfApiCore.DbTier;
 using WolfApiCore.LSportApi;
 using WolfApiCore.Models;
@@ -89,7 +90,18 @@ namespace WolfApiCore.Controllers
             }
 
             string idPlayerAndIdCall = _base64Service.DecodeBase64(base64Code);
-            string[] idsOfPlayer = idPlayerAndIdCall.Split('|');
+
+            if ( idPlayerAndIdCall.IsNullOrEmpty() )
+            {
+
+              return BadRequest(new
+                    {
+                        code = "UNKNOWN_ERROR",
+                        message = "An unknown error occurred."
+                    }); 
+            }
+
+            List<string> idsOfPlayer = idPlayerAndIdCall.Split('|').ToList();
 
             string idPlayer = idsOfPlayer[0];
             string idCall = idsOfPlayer[1];
@@ -108,8 +120,8 @@ namespace WolfApiCore.Controllers
             if ( player is null )
             {
                return Unauthorized(new {
-                    code = "UNKNOWN_ERROR",
-                    message = "An unknown error occurred."
+                    code = "SESSION_INVALID",
+                    message = "Renew Session"
                }); 
             }
 
