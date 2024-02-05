@@ -14,7 +14,7 @@ namespace WolfApiCore.DbTier
     {
         private readonly string dgsConnString = "Data Source=192.168.11.29;Initial Catalog=DGSDATA;Persist Security Info=True;User ID=Payments;Password=p@yM3nts2701;TrustServerCertificate=True";
         private readonly string moverConnString = "Data Source=192.168.11.29;Initial Catalog=mover;Persist Security Info=True;User ID=live;Password=d_Ez*gIb8v7NogU;TrustServerCertificate=True";
-        
+
         //private readonly AppConfig _appConfig = new AppConfig();
 
 
@@ -1660,7 +1660,7 @@ namespace WolfApiCore.DbTier
             return resp;
         }
 
-        public PlayerInfoDto GetPlayerInfo(int idplayer)
+        public PlayerInfoDto GetPlayerInfo(int idplayer, int idCall = 0)
         {
             PlayerInfoDto resp = new PlayerInfoDto();
             LiveAdminDbClass oLiveAdmin = new LiveAdminDbClass();
@@ -1690,7 +1690,7 @@ namespace WolfApiCore.DbTier
                         resp.Player = "";
                         resp.IdPlayer = -1;
                     }
-                    else
+                    else if ( idCall.Equals(0) )
                     {
                         using (var connection = new SqlConnection(dgsConnString))
                         {
@@ -1700,6 +1700,24 @@ namespace WolfApiCore.DbTier
                                 idplayer
                             };
                             resp = connection.Query<PlayerInfoDto>(procedure, values, commandType: CommandType.StoredProcedure).FirstOrDefault();
+                            if (resp != null) {
+                                resp.Access = true;
+                            }
+                            
+                        }
+                    }
+                    else
+                    {
+                        using (var connection = new SqlConnection(dgsConnString))
+                        {
+                            var procedure = "[CORE_GETPLAYERINFOBYIDCALL]";
+                            var values = new
+                            {
+                                idplayer,
+                                idCall
+                            };
+                            resp = connection.Query<PlayerInfoDto>(procedure, values, commandType: CommandType.StoredProcedure).FirstOrDefault();
+
                             if (resp != null) {
                                 resp.Access = true;
                             }
