@@ -223,6 +223,39 @@ namespace WolfApiCore.DbTier
             return Math.Round(Convert.ToDecimal(factor * Betslip.ParlayRiskAmount), MidpointRounding.AwayFromZero) - Betslip.ParlayRiskAmount;
         }
 
+
+
+        public RespPlayerLastBet GetLastBetHours(int PlayerId)
+        {
+            RespPlayerLastBet lastBet = new RespPlayerLastBet();
+            try
+            {
+                using var connection = new SqlConnection(moverConnString);
+                connection.Open();
+
+                lastBet = connection.QueryFirstOrDefault<RespPlayerLastBet>(
+                    "sp_MGL_GetLastBetHours",
+                    new { IdPlayer = PlayerId },
+                    commandType: System.Data.CommandType.StoredProcedure);
+
+                if (lastBet == null)
+                {
+                    lastBet = new RespPlayerLastBet
+                    {
+                        idPlayer = PlayerId,
+                        PlacedDateTime = DateTime.Now, 
+                        HoursSinceLastBet = 100 
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            return lastBet;
+        }
+
+
         public float GeParlayFactor(LSport_BetSlipObj Betslip)
         {
             float factor = 1;
@@ -2181,6 +2214,21 @@ namespace WolfApiCore.DbTier
         public bool Access { get; set; }
         //  public string Password { get; set; }
     }
+
+
+
+    public class RespPlayerLastBet
+    {
+        public int idPlayer { get; set; }
+        public DateTime PlacedDateTime { get; set; }
+        public int HoursSinceLastBet { get; set; }
+    }
+
+    public class ReqPlayerLastBet
+    {
+        public int idPlayer { get; set; }
+    }
+
 
     public class LSportStringResult
     {

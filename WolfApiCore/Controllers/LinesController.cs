@@ -21,6 +21,17 @@ namespace WolfApiCore.Controllers
             _base64Service = base64Service;
         }
 
+
+
+        [HttpPost("GetLastBetHours")]
+        public RespPlayerLastBet GetLastBetHours(ReqPlayerLastBet idplayer)
+        {
+            return new LiveDbWager().GetLastBetHours(idplayer.idPlayer);
+        }
+
+
+
+
         [HttpGet("GetGamesAndLines/{idplayer}")]
         public List<LSport_ScreenSportsDto> GetGamesAndLines(int idPlayer)
         {
