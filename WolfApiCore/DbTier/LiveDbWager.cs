@@ -147,42 +147,38 @@ namespace WolfApiCore.DbTier
 
                     var TotalAmountValue = GetTotalValuePerGame(Betslip.IdPlayer, game.FixtureId) + Betslip.ParlayRiskAmount;
 
-
                     if (TotalAmountValue > TotAmtPerGame)
                     {
-                        Betslip.ParlayBetResult = -50;
-                        Betslip.ParlayMessage = $"Ticket exceeds bet per game. Max = {TotAmtPerGame}";
+                        Betslip.ParlayBetResult = -50; 
+                        Betslip.ParlayMessage = $"{game.HomeTeam} vs {game.VisitorTeam} exceeds Max Risk per game. (Max = {TotAmtPerGame:F0})";
                     }
 
                     foreach (var propSelected in game.Selections)
                     {
-
                         if (propSelected.Odds1 < MinPriceAmount)
                         {
                             Betslip.ParlayBetResult = -50;
-                            Betslip.ParlayMessage = $"Ticket exceeds min price. Min = {MinPriceAmount}";
+                            Betslip.ParlayMessage = $"Price for {propSelected.Name} exceeds Min Price. (Min = {MinPriceAmount:F0})";
                         }
 
                         else if (propSelected.Odds1 > MaxPriceAmount)
                         {
                             Betslip.ParlayBetResult = -50;
-                            Betslip.ParlayMessage = $"Ticket exceeds max price. Max = {MaxPriceAmount}";
+                            Betslip.ParlayMessage = $"Price for {propSelected.Name} exceeds Max Price. (Max = {MaxPriceAmount:F0})";
                         }
-
                     }
-
                 }
 
 
-                if (Betslip.ParlayRiskAmount >= MaxRiskAmount)
+                if (Betslip.ParlayRiskAmount > MaxRiskAmount)
                 {
                     Betslip.ParlayBetResult = -50;
-                    Betslip.ParlayMessage = $"Ticket exceeds your max Risk amount { MaxRiskAmount }";
+                    Betslip.ParlayMessage = $"Parlay exceeds Max Risk amount. (Max ={MaxRiskAmount:F0})";
                 }
-                else if (Betslip.ParlayWinAmount >= MaxWinAmount)
+                else if (Betslip.ParlayWinAmount > MaxWinAmount)
                 {
                     Betslip.ParlayBetResult = -50;
-                    Betslip.ParlayMessage = $"Ticket exceededs your max Win amount { MaxWinAmount }";
+                    Betslip.ParlayMessage = $"Parlay exceeds Max Win amount. (Max = {MaxWinAmount:F0})";
                 }
                 else
                 {
@@ -405,101 +401,46 @@ namespace WolfApiCore.DbTier
                         //    originalProp.BsBetResult = -50;
                         //    originalProp.BsMessage = "Exceeded Daily Total Win amount.";
                         //}
-                        //else {
-
-
-                   
-
-
-                        if (originalProp.Odds1 < 0 && originalProp.BsRiskAmount > 0)
+                        //else {                                                             
+                        
+                        if (originalProp.Odds1 < MinPriceAmount )
                         {
-
-
-                            if (originalProp.Odds1 < MinPriceAmount )
-                            {
-                                originalProp.StatusForWager = 5;
-                                originalProp.BsBetResult = -50;
-                                originalProp.BsMessage = $"Ticket exceeds min price. Min = {MinPriceAmount}";
-                            }
-
-                            else if ( originalProp.Odds1 > MaxPriceAmount)
-                            {
-                                originalProp.StatusForWager = 5;
-                                originalProp.BsBetResult = -50;
-                                originalProp.BsMessage = $"Ticket exceeds max price. Max = {MaxPriceAmount}";
-                            }
-
-                            else if (TotalAmountValue > TotAmtPerGame)
-                            {
-                                originalProp.StatusForWager = 5;
-                                originalProp.BsBetResult = -50;
-                                originalProp.BsMessage = $"Ticket exceeds bet per game. Max = {TotAmtPerGame}";
-                            }
-
-                            else if (originalProp.BsWinAmount < MinRiskAmount)
-                                {
-                                    originalProp.StatusForWager = 5; 
-                                    originalProp.BsBetResult = -50;
-                                    originalProp.BsMessage = $"Less than min risk amount. Min = {MinRiskAmount}";
-                                }
-                                else if (originalProp.BsWinAmount > MaxRiskAmount)
-                                {
-                                    originalProp.StatusForWager = 5; 
-                                    originalProp.BsBetResult = -50;
-                                    originalProp.BsMessage = $"Exceeded max risk amount. Max = {MaxRiskAmount}";
-                                }
-                                else if (originalProp.BsWinAmount > MaxWinAmount)
-                                {
-                                    originalProp.StatusForWager = 5; 
-                                    originalProp.BsBetResult = -50;
-                                    originalProp.BsMessage = $"Exceeded max win amount. Max = { MaxWinAmount}";
-                                }
-                            }
-                            else if (originalProp.BsRiskAmount > 0)
+                            originalProp.StatusForWager = 5;
+                            originalProp.BsBetResult = -50;
+                            originalProp.BsMessage = $"Ticket exceeds Min Price. (Min = {MinPriceAmount:F0})";
+                        }                            
+                        else if (originalProp.Odds1 > MaxPriceAmount)
                         {
+                            originalProp.StatusForWager = 5;
+                            originalProp.BsBetResult = -50;
+                            originalProp.BsMessage = $"Ticket exceeds Max Price. (Max = {MaxPriceAmount:F0})";
+                        }
 
+                        else if (TotalAmountValue > TotAmtPerGame)
+                        {
+                            originalProp.StatusForWager = 5;
+                            originalProp.BsBetResult = -50;
+                            originalProp.BsMessage = $"Ticket exceeds Max Risk per game. (Max = {TotAmtPerGame:F0})";
+                        }
 
-                            if (originalProp.Odds1 < MinPriceAmount)
-                            {
-                                originalProp.StatusForWager = 5;
-                                originalProp.BsBetResult = -50;
-                                originalProp.BsMessage = $"Ticket exceeds min price. Min = {MinPriceAmount}";
-                            }
-
-                            else if (originalProp.Odds1 > MaxPriceAmount)
-                            {
-                                originalProp.StatusForWager = 5;
-                                originalProp.BsBetResult = -50;
-                                originalProp.BsMessage = $"Ticket exceeds max price. Max = {MaxPriceAmount}";
-                            }
-
-                            else if (TotalAmountValue > TotAmtPerGame)
-                            {
-                                originalProp.StatusForWager = 5;
-                                originalProp.BsBetResult = -50;
-                                originalProp.BsMessage = $"Ticket exceeds bet per game. Max = {TotAmtPerGame}";
-                            }
-
-                            if (originalProp.BsRiskAmount < MinRiskAmount)
-                                {
-                                    originalProp.StatusForWager = 5; 
-                                    originalProp.BsBetResult = -50;
-                                    originalProp.BsMessage = $"Less than min risk amount. Min = { MinRiskAmount }";
-                                }
-                                else if (originalProp.BsRiskAmount > MaxRiskAmount)
-                                {
-                                    originalProp.StatusForWager = 5; 
-                                    originalProp.BsBetResult = -50;
-                                    originalProp.BsMessage = $"Exceeded max risk amount. Max = {MaxRiskAmount}";
-                                }
-                                else if (originalProp.BsRiskAmount > MaxWinAmount)
-                                {
-                                    originalProp.StatusForWager = 5; 
-                                    originalProp.BsBetResult = -50;
-                                    originalProp.BsMessage = $"Exceeded max win amount. Max = {MaxWinAmount}";
-                                }
-                            }
-                        //}
+                        else if (originalProp.BsRiskAmount < MinRiskAmount)
+                        {
+                            originalProp.StatusForWager = 5; 
+                            originalProp.BsBetResult = -50;
+                            originalProp.BsMessage = $"Less than Min Risk amount. (Min = {MinRiskAmount:F0})";
+                        }
+                        else if (originalProp.BsRiskAmount > MaxRiskAmount)
+                        {
+                            originalProp.StatusForWager = 5; 
+                            originalProp.BsBetResult = -50;
+                            originalProp.BsMessage = $"Exceeded Max Risk amount. (Max = {MaxRiskAmount:F0})";
+                        }
+                        else if (originalProp.BsWinAmount > MaxWinAmount)
+                        {
+                            originalProp.StatusForWager = 5; 
+                            originalProp.BsBetResult = -50;
+                            originalProp.BsMessage = $"Exceeded Max Win amount. (Max = {MaxWinAmount:F0})";
+                        }                        
                     }
                     //else
                     //{
