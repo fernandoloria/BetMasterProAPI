@@ -896,7 +896,7 @@ namespace WolfApiCore.DbTier
                         HomeTeam = homeTeam,
                         VisitorTeam = visitorTeam,
                         MarketName = propSelected.MarketName,
-                        EventName = propSelected.Name,
+                        Name = propSelected.Name,
                         BaseLine = propSelected.BaseLine,
                         Odds1 = propSelected.Odds1
                     };
@@ -994,8 +994,9 @@ namespace WolfApiCore.DbTier
                                 HomeTeam = item.HomeTeam,
                                 VisitorTeam = item.VisitorTeam,
                                 MarketName = sel.MarketName,
-                                EventName = sel.Name,
+                                Name = sel.Name,
                                 BaseLine = sel.BaseLine,
+                                Line = sel.Line1,
                                 Odds1 = sel.Odds1
                             };
 
@@ -2003,7 +2004,15 @@ namespace WolfApiCore.DbTier
         private string FormatWagerDetailCompleteDescription(WagerDetailCompleteDescriptionModel wagerDetailDescription) {
             
             string completeDescription;
-            string? baseLine = wagerDetailDescription.BaseLine.IsNullOrEmpty() ? "" : $"{wagerDetailDescription.BaseLine} • " ;
+
+            string line = wagerDetailDescription.Line.IsNullOrEmpty() ? "" : $"{wagerDetailDescription.Line} " ;
+            string player = wagerDetailDescription.BaseLine.IsNullOrEmpty() ? "" : $"{wagerDetailDescription.BaseLine} " ;
+
+            if ( line.Replace("-", "").Equals(player) )
+            {
+                player = string.Empty;
+            }
+
             string odds = wagerDetailDescription.Odds1 > 0 ? $"+{wagerDetailDescription.Odds1}" : $"{wagerDetailDescription.Odds1}";
 
             string[]? homeTeamWords = wagerDetailDescription?.HomeTeam?.Split(' ');
@@ -2012,7 +2021,7 @@ namespace WolfApiCore.DbTier
             string lastHomeTeamName = homeTeamWords?.Length == 1 ? homeTeamWords[0] : homeTeamWords![ homeTeamWords.Length - 2] + " " + homeTeamWords[ homeTeamWords.Length - 1];
             string lastVisitorTeamName = visitorTeamWords?.Length == 1 ? visitorTeamWords[0] : visitorTeamWords![ visitorTeamWords.Length - 2] + " " + visitorTeamWords[ visitorTeamWords.Length - 1];
 
-            completeDescription = $"{wagerDetailDescription!.SportName} • {lastHomeTeamName} - {lastVisitorTeamName} • {wagerDetailDescription.MarketName} • {wagerDetailDescription.EventName}  {baseLine}{odds}";
+            completeDescription = $"{wagerDetailDescription!.SportName} • {lastHomeTeamName} VS {lastVisitorTeamName} • {wagerDetailDescription.MarketName} • {player} {wagerDetailDescription.Name}  {line}{odds}";
 
             return completeDescription.Replace(" ", "");
         }
