@@ -898,6 +898,7 @@ namespace WolfApiCore.DbTier
                         MarketName = propSelected.MarketName,
                         Name = propSelected.Name,
                         BaseLine = propSelected.BaseLine,
+                        Line = propSelected.Line1,
                         Odds1 = propSelected.Odds1
                     };
 
@@ -2005,12 +2006,14 @@ namespace WolfApiCore.DbTier
             
             string completeDescription;
 
-            string line = wagerDetailDescription.Line.IsNullOrEmpty() ? "" : $"{wagerDetailDescription.Line} " ;
-            string player = wagerDetailDescription.BaseLine.IsNullOrEmpty() ? "" : $"{wagerDetailDescription.BaseLine} " ;
+            string line = wagerDetailDescription.Line.IsNullOrEmpty() ? "" : $"{wagerDetailDescription.Line}" ;
+            string player = wagerDetailDescription.BaseLine.IsNullOrEmpty() ? "" : $"{wagerDetailDescription.BaseLine}" ;
 
-            if ( line.Replace("-", "").Equals(player) )
+            if ( line.Replace("-", "").Equals(player.Replace("-", "")) )
             {
-                player = string.Empty;
+                player = "";
+            } else {
+                player += " ";
             }
 
             string odds = wagerDetailDescription.Odds1 > 0 ? $"+{wagerDetailDescription.Odds1}" : $"{wagerDetailDescription.Odds1}";
@@ -2021,9 +2024,9 @@ namespace WolfApiCore.DbTier
             string lastHomeTeamName = homeTeamWords?.Length == 1 ? homeTeamWords[0] : homeTeamWords![ homeTeamWords.Length - 2] + " " + homeTeamWords[ homeTeamWords.Length - 1];
             string lastVisitorTeamName = visitorTeamWords?.Length == 1 ? visitorTeamWords[0] : visitorTeamWords![ visitorTeamWords.Length - 2] + " " + visitorTeamWords[ visitorTeamWords.Length - 1];
 
-            completeDescription = $"{wagerDetailDescription!.SportName} • {lastHomeTeamName} VS {lastVisitorTeamName} • {wagerDetailDescription.MarketName} • {player} {wagerDetailDescription.Name}  {line}{odds}";
+            completeDescription = $"{wagerDetailDescription!.MarketName}: {player} {wagerDetailDescription.Name} {line}{odds} [{lastHomeTeamName} vs {lastVisitorTeamName}/{wagerDetailDescription!.SportName}]";
 
-            return completeDescription.Replace(" ", "");
+            return completeDescription;
         }
 
     }//end class
