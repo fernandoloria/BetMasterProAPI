@@ -905,7 +905,7 @@ namespace WolfApiCore.DbTier
                     string Description /*255*/ = "VegasLive #" + idlivewager + " [" + fixtureId + "] " + sportName + " / " + visitorTeam + " @ " + homeTeam;
                     string CompleteDescription/*100*/ = FormatWagerDetailCompleteDescription(wagerDetailCompleteDescriptionModel);
 
-                   var idlivewagerDetail = InsertLiveWagerDetail(idlivewager, fixtureId, propSelected.MarketId, propSelected.IdL1, propSelected.BaseLine, propSelected.Line1, (int)propSelected.Odds1, (decimal)propSelected.Price, propSelected.OriginalName, CompleteDescription, (int)riskAmount, (int)winAmount);
+                   var idlivewagerDetail = InsertLiveWagerDetail(idlivewager, fixtureId, propSelected.MarketId, propSelected.IdL1, propSelected.BaseLine, propSelected.Line1, (int)propSelected.Odds1, (decimal)propSelected.Price, propSelected.Name, CompleteDescription, (int)riskAmount, (int)winAmount);
 
                    
                     if(idlivewagerDetail > 0)
@@ -1004,7 +1004,7 @@ namespace WolfApiCore.DbTier
                             string itemDescription = FormatWagerDetailCompleteDescription(wagerDetailCompleteDescriptionModel);
                             descriptionList.Add(itemDescription);
 
-                            ListDetailWager.Add(InsertLiveWagerDetail(idlivewager, item.FixtureId, sel.MarketId, sel.IdL1, sel.BaseLine, sel.Line1, (int)sel.Odds1, (decimal)sel.Price, sel.OriginalName, itemDescription, (int)riskAmount, (int)winAmount));
+                            ListDetailWager.Add(InsertLiveWagerDetail(idlivewager, item.FixtureId, sel.MarketId, sel.IdL1, sel.BaseLine, sel.Line1, (int)sel.Odds1, (decimal)sel.Price, sel.Name, itemDescription, (int)riskAmount, (int)winAmount));
                         }
                     }
 
