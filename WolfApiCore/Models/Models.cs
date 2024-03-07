@@ -188,8 +188,8 @@ namespace WolfApiCore.Models
         public string? CssStyle3 { get; set; }
         public bool IsSelected { get; set; }
 
-        public int? BsWinAmount { get; set; }
-        public int? BsRiskAmount { get; set; }
+        public decimal? BsWinAmount { get; set; }
+        public decimal? BsRiskAmount { get; set; }
         public int? BsBetResult { get; set; }
         public string? BsTicketNumber { get; set; }
         public string? BsMessage { get; set; }
@@ -208,13 +208,12 @@ namespace WolfApiCore.Models
         //public List<LSport_BetSlipSelectionObj> selections { get; set; }
 
         public List<LSport_BetGame> Events { get; set; }
-        public int ParlayWinAmount { get; set; }
-        public int ParlayRiskAmount { get; set; }
+        public decimal ParlayWinAmount { get; set; }
+        public decimal ParlayRiskAmount { get; set; }
         public int ParlayBetResult { get; set; }
         public string ParlayBetTicket { get; set; }
         public string ParlayMessage { get; set; }
-
-
+        public bool? IsMobile { get; set; }
     }
 
     public class LSport_BetGame

@@ -121,7 +121,7 @@ namespace WolfApiCore.DbTier
         {
             float factor = GeParlayFactor(Betslip);
 
-            return Math.Round(Convert.ToDecimal(factor * Betslip.ParlayRiskAmount), MidpointRounding.AwayFromZero) - Betslip.ParlayRiskAmount;
+            return Convert.ToDecimal((decimal)factor * Betslip.ParlayRiskAmount) - Betslip.ParlayRiskAmount;
         }
 
         public float GeParlayFactor(LSport_BetSlipObj Betslip)
@@ -705,15 +705,15 @@ namespace WolfApiCore.DbTier
             {
                 var PlayerData = GetPlayerData(betslipObj.IdPlayer);
 
-                int winAmount = (int)ParlayCalculateWin(betslipObj);
-                int riskAmount = (int)betslipObj.ParlayRiskAmount;
+                decimal winAmount = ParlayCalculateWin(betslipObj);
+                decimal riskAmount = betslipObj.ParlayRiskAmount;
 
                 betslipObj.ParlayRiskAmount = riskAmount;
                 betslipObj.ParlayWinAmount = winAmount;
 
                 //insertamos el straight en las tablas auxiliares
 
-                int idlivewager = InsertLiveWagerHeader(betslipObj.IdPlayer, 1, (int)riskAmount, (int)winAmount, "Parlay", "10.1.1.1", betslipObj.Events.Count(), 1);
+                int idlivewager = InsertLiveWagerHeader(betslipObj.IdPlayer, 1, riskAmount, winAmount, "Parlay", "10.1.1.1", betslipObj.Events.Count(), 1);
 
                 if (idlivewager > 0)
                 {
@@ -1213,7 +1213,7 @@ namespace WolfApiCore.DbTier
             return idWt;
         }
 
-        public int InsertDgsWager(int IdPlayer, int RiskAmount, int OriginalWinAmount, string CompleteDescription, string DetailCompleteDescription, string Ip)
+        public int InsertDgsWager(int IdPlayer, decimal RiskAmount, decimal OriginalWinAmount, string CompleteDescription, string DetailCompleteDescription, string Ip)
         {
             int resp = 0;
             try

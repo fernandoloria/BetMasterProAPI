@@ -73,7 +73,7 @@ namespace WolfApiCore.DbTier
                         {
                             if ((int)propSelected.BsRiskAmount >= 0 && propSelected.StatusForWager is 10 or 9)
                             {
-                                var betResult = CreateStraightWager(propSelected, game.FixtureId, Betslip.IdPlayer, game.HomeTeam, game.VisitorTeam, game.SportName);
+                                var betResult = CreateStraightWager(propSelected, game.FixtureId, Betslip.IdPlayer, game.HomeTeam, game.VisitorTeam, game.SportName, (bool)Betslip.IsMobile!);
 
                                 propSelected.StatusForWager = betResult.StatusForWager;
                                 propSelected.BsBetResult = betResult.BsBetResult;
@@ -216,7 +216,7 @@ namespace WolfApiCore.DbTier
         {
             float factor = GeParlayFactor(Betslip);
 
-            return Math.Round(Convert.ToDecimal(factor * Betslip.ParlayRiskAmount), MidpointRounding.AwayFromZero) - Betslip.ParlayRiskAmount;
+            return Convert.ToDecimal((decimal)factor * Betslip.ParlayRiskAmount) - Betslip.ParlayRiskAmount;
         }
 
 
@@ -864,21 +864,21 @@ namespace WolfApiCore.DbTier
             return resp;
         }
 
-        public LSport_EventPropDto CreateStraightWager(LSport_EventPropDto propSelected, int fixtureId, int idPlayer, string homeTeam, string visitorTeam, string sportName)
+        public LSport_EventPropDto CreateStraightWager(LSport_EventPropDto propSelected, int fixtureId, int idPlayer, string homeTeam, string visitorTeam, string sportName, bool isMobile)
         {
             try
             {
                 //var PlayerData = GetPlayerData(idPlayer);
 
-                int winAmount = (int)propSelected.BsWinAmount;
-                int riskAmount = (int)propSelected.BsRiskAmount;
+                decimal winAmount = (decimal)propSelected.BsWinAmount!;
+                decimal riskAmount = (decimal)propSelected.BsRiskAmount!;
 
                 if (propSelected.StatusForWager == 9)
                 { //linea cambio, igual para win and risk
 
                     // si oods es negativo afectamos el risk
                     // si odds es positivo afectamos el win
-                    winAmount = (int)StraightCalculateWin((int)propSelected.Odds1, (int)propSelected.BsRiskAmount);
+                    winAmount = StraightCalculateWin((int)propSelected.Odds1, (decimal)propSelected.BsRiskAmount);
                 }
 
                 propSelected.BsRiskAmount = riskAmount;
@@ -886,7 +886,7 @@ namespace WolfApiCore.DbTier
 
                 //insertamos el straight en las tablas auxiliares
 
-                int idlivewager = InsertLiveWagerHeader(idPlayer, 1, (int)riskAmount, (int)winAmount, "Straight", "10.1.1.1", 1, 0);
+                int idlivewager = InsertLiveWagerHeader(idPlayer, 1, riskAmount, winAmount, "Straight", "10.1.1.1", 1, 0, isMobile);
 
                 if (idlivewager > 0)
                 {
@@ -905,7 +905,7 @@ namespace WolfApiCore.DbTier
                     string Description /*255*/ = "VegasLive #" + idlivewager + " [" + fixtureId + "] " + sportName + " / " + visitorTeam + " @ " + homeTeam;
                     string CompleteDescription/*100*/ = FormatWagerDetailCompleteDescription(wagerDetailCompleteDescriptionModel);
 
-                   var idlivewagerDetail = InsertLiveWagerDetail(idlivewager, fixtureId, propSelected.MarketId, propSelected.IdL1, propSelected.BaseLine, propSelected.Line1, (int)propSelected.Odds1, (decimal)propSelected.Price, propSelected.Name, CompleteDescription, (int)riskAmount, (int)winAmount);
+                   var idlivewagerDetail = InsertLiveWagerDetail(idlivewager, fixtureId, propSelected.MarketId, propSelected.IdL1, propSelected.BaseLine, propSelected.Line1, (int)propSelected.Odds1, (decimal)propSelected.Price, propSelected.Name, CompleteDescription, riskAmount, winAmount);
 
                    
                     if(idlivewagerDetail > 0)
@@ -954,8 +954,8 @@ namespace WolfApiCore.DbTier
 
                 var PlayerData = GetPlayerData(betslipObj.IdPlayer);
 
-                int winAmount = (int)ParlayCalculateWin(betslipObj);
-                int riskAmount = (int)betslipObj.ParlayRiskAmount;
+                decimal winAmount = ParlayCalculateWin(betslipObj);
+                decimal riskAmount = betslipObj.ParlayRiskAmount;
 
                 betslipObj.ParlayRiskAmount = riskAmount;
                 betslipObj.ParlayWinAmount = winAmount;
@@ -972,7 +972,7 @@ namespace WolfApiCore.DbTier
                     }
                 }
 
-                int idlivewager = InsertLiveWagerHeader(betslipObj.IdPlayer, 1, (int)riskAmount, (int)winAmount, "Parlay", "10.1.1.1", numberEvents, 1);
+                int idlivewager = InsertLiveWagerHeader(betslipObj.IdPlayer, 1, riskAmount, winAmount, "Parlay", "10.1.1.1", numberEvents, 1, (bool)betslipObj.IsMobile!);
 
                 if (idlivewager > 0)
                 {
@@ -1004,7 +1004,7 @@ namespace WolfApiCore.DbTier
                             string itemDescription = FormatWagerDetailCompleteDescription(wagerDetailCompleteDescriptionModel);
                             descriptionList.Add(itemDescription);
 
-                            ListDetailWager.Add(InsertLiveWagerDetail(idlivewager, item.FixtureId, sel.MarketId, sel.IdL1, sel.BaseLine, sel.Line1, (int)sel.Odds1, (decimal)sel.Price, sel.Name, itemDescription, (int)riskAmount, (int)winAmount));
+                            ListDetailWager.Add(InsertLiveWagerDetail(idlivewager, item.FixtureId, sel.MarketId, sel.IdL1, sel.BaseLine, sel.Line1, (int)sel.Odds1, (decimal)sel.Price, sel.Name, itemDescription, riskAmount, winAmount));
                         }
                     }
 
@@ -1507,7 +1507,7 @@ namespace WolfApiCore.DbTier
             return idWt;
         }
 
-        public int InsertDgsWagerHeader(int IdPlayer, int RiskAmount, int OriginalWinAmount, string CompleteDescription/*100*/, string Description/*255*/, string Ip)
+        public int InsertDgsWagerHeader(int IdPlayer, decimal RiskAmount, decimal OriginalWinAmount, string CompleteDescription/*100*/, string Description/*255*/, string Ip)
         {
             int resp = 0;
             try
@@ -1574,7 +1574,7 @@ namespace WolfApiCore.DbTier
             return idWt;
         }
 
-        public int InsertLiveWagerHeader(int IdPlayer, int IdWagerType, decimal RiskAmount, decimal WinAmount, string Description, string Ip, int NumDetails, Int64 DgsIdWager)
+        public int InsertLiveWagerHeader(int IdPlayer, int IdWagerType, decimal RiskAmount, decimal WinAmount, string Description, string Ip, int NumDetails, Int64 DgsIdWager, bool isMobile)
         {
             int resp = 0;
             try
@@ -1591,7 +1591,8 @@ namespace WolfApiCore.DbTier
                         Description = Description,
                         Ip = Ip,
                         NumDetails = NumDetails,
-                        DgsIdWager = DgsIdWager
+                        DgsIdWager = DgsIdWager,
+                        IsMobile = isMobile
                     };
                     resp = connection.Query<int>(procedure, values, commandType: CommandType.StoredProcedure).FirstOrDefault();
                 }

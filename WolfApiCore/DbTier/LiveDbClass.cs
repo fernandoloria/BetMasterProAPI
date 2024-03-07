@@ -1186,12 +1186,12 @@ namespace WolfApiCore.DbTier
         public string PickTeam { get; set; }
         public int MarketId { get; set; }
         public int Result { get; set; }
-        public string? Name { get; set; }
+        public string? SportName { get; set; }
         public string? Home { get; set; }
         public string? Visitor { get; set; }
         public string? Market { get; set; }
         public string? Player { get; set; }
-
+        public string? Line { get; set; }
     }
 
     public class HistoryBetsDTO
