@@ -1855,25 +1855,37 @@ namespace WolfApiCore.DbTier
             return playerInfo;
         }
 
-        public int UpdateWagerDetailResult(int IdLiveWagerDetail, int IdLiveWager, int Result, int IdUser)
+        public async Task<int> UpdateWagerDetailResult(int IdLiveWagerDetail, int IdLiveWager, int Result, int IdUser)
         { 
             //TODO revisar si el idUser es valido!
-            int rest = 0;
+            int result = 0;
             try
             {
                 using (var connection = new SqlConnection(moverConnString))
                 {
-                    var res = connection.Query<string>(@"UPDATE TB_MGL_WAGERDETAIL SET RESULT = " + Result + ", IdUserManualGrade = " + IdUser + " WHERE IDLIVEWAGERDETAIL = " + IdLiveWagerDetail + " AND IDLIVEWAGER = " + IdLiveWager).FirstOrDefault();
+                    var parameters = new
+                    {
+                        Result,
+                        IdUserManualGrade = IdUser,
+                        IdLiveWagerDetail,
+                        IdLiveWager
+                    };
+
+                    var procedure = "[dbo].[sp_MGL_UpdateWagerDetail]";
+
+                    await connection.OpenAsync();
+
+                    result = await connection.ExecuteAsync(procedure, parameters, commandType: CommandType.StoredProcedure);
+
                 }
             }
             catch (Exception ex)
             {
-                rest = -1;
-              //  _ = new Misc().WriteErrorLog("MoverDbClass", "UpdateWagerDetailResult", ex.Message, ex.StackTrace);
+                result = -1;
             }
-            //return pickId;
-            return rest;
-        }//end method
+            
+            return result;
+        }
 
         public List<CheckListLines> CheckLinesAlive(List<CheckListLines> CheckList)
         {
