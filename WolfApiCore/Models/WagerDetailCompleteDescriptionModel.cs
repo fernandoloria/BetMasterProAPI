@@ -10,5 +10,7 @@ namespace WolfApiCore.Models
         public string? BaseLine { get; set; }
         public string? Line { get; set; }
         public int? Odds1 { get; set; }
+        public bool? IsTournament { get; set; }
+        public string? LeagueName { get; set; }
     }
 }

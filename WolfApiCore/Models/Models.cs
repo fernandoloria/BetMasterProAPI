@@ -43,6 +43,7 @@ namespace WolfApiCore.Models
         public LSport_EventValuesDto? Line { get; set; }
         public List<LSport_EventPropMarketDto>? PropMarkets { get; set; }
         public LSport_MainLine? MainLine { get; set; }
+        public bool? IsTournament { get; set; }
     }
 
     public class LSport_MainLine
