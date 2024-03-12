@@ -110,6 +110,7 @@ namespace WolfApiCore.Models
         public bool ShowLeague { get; set; }
         public string LeagueName { get; set; }
         public int LeagueId { get; set; }
+        public bool? IsTournament { get; set; }
         public List<LSportGameDto>? Games { get; set; }
     }
 
