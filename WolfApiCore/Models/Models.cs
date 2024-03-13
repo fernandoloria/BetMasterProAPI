@@ -43,6 +43,7 @@ namespace WolfApiCore.Models
         public LSport_EventValuesDto? Line { get; set; }
         public List<LSport_EventPropMarketDto>? PropMarkets { get; set; }
         public LSport_MainLine? MainLine { get; set; }
+        public bool? IsTournament { get; set; }
     }
 
     public class LSport_MainLine
@@ -109,6 +110,7 @@ namespace WolfApiCore.Models
         public bool ShowLeague { get; set; }
         public string LeagueName { get; set; }
         public int LeagueId { get; set; }
+        public bool? IsTournament { get; set; }
         public List<LSportGameDto>? Games { get; set; }
     }
 
@@ -222,6 +224,8 @@ namespace WolfApiCore.Models
         public string VisitorTeam { get; set; }
         public string HomeTeam { get; set; }
         public string SportName { get; set; }
+        public string LeagueName { get; set; }
+        public bool? IsTournament { get; set; }
         public List<LSport_EventPropDto> Selections { get; set; }
     }
 

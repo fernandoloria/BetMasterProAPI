@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Net;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using WolfApiCore.DbTier;
 using WolfApiCore.LSportApi;
@@ -83,10 +84,12 @@ namespace WolfApiCore.Controllers
         }
 
         [HttpPost("UpdateWagerDetailResult")]
-        public void UpdateWagerDetailResult(GradeDetailWager values)
+        public async Task<ActionResult> UpdateWagerDetailResult(GradeDetailWager values)
         {
            // var connString = _configuration.GetValue<string>("SrvSettings:DbConnMover");
             new LiveDbWager().UpdateWagerDetailResult(values.IdLiveWagerDetail, values.IdLiveWager, values.Result, values.IdUser);
+
+            return NoContent();
         }
 
         [HttpGet("GetPlayerInfoByIdCall/{base64Code}")]

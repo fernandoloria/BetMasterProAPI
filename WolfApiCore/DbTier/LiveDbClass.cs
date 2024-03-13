@@ -243,6 +243,7 @@ namespace WolfApiCore.DbTier
                                     ShowLeague = false,
                                     LeagueName = game.LocationName + " - " + game.LeagueName, //game.LeagueName + " - " + game.LocationName,
                                     LeagueId = game.LeagueId,
+                                    IsTournament = game.IsTournament,
                                     Games = new List<LSportGameDto>()
                                 };
                                 lg.Games.Add(game);
