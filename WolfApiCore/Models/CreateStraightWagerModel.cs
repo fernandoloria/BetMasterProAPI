@@ -10,5 +10,6 @@ namespace WolfApiCore.Models
         public string? SportName { get; set; }
         public bool? IsMobile { get; set; }
         public string? LeagueName { get; set; }
+        public bool? IsTournament { get; set; }
     }
 }

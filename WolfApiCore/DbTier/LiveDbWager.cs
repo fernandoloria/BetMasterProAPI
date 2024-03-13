@@ -81,7 +81,9 @@ namespace WolfApiCore.DbTier
                                     HomeTeam = game.HomeTeam,
                                     VisitorTeam = game.VisitorTeam,
                                     SportName = game.SportName,
-                                    IsMobile = Betslip.IsMobile
+                                    IsMobile = Betslip.IsMobile,
+                                    LeagueName = game.LeagueName,
+                                    IsTournament = game.IsTournament
                                 };
 
                                 var betResult = CreateStraightWager(createStraightWagerModel);
@@ -905,7 +907,8 @@ namespace WolfApiCore.DbTier
                         BaseLine = createStraightWagerModel.PropSelected.BaseLine,
                         Line = createStraightWagerModel.PropSelected.Line1,
                         Odds1 = createStraightWagerModel.PropSelected.Odds1,
-                        LeagueName = createStraightWagerModel.LeagueName
+                        LeagueName = createStraightWagerModel.LeagueName,
+                        IsTournament = createStraightWagerModel.IsTournament
                     };
 
                     string Description /*255*/ = "VegasLive #" + idlivewager + " [" + createStraightWagerModel.FixtureId + "] " + createStraightWagerModel.SportName + " / " + createStraightWagerModel.VisitorTeam + " @ " + createStraightWagerModel.HomeTeam;
@@ -1004,7 +1007,9 @@ namespace WolfApiCore.DbTier
                                 Name = sel.Name,
                                 BaseLine = sel.BaseLine,
                                 Line = sel.Line1,
-                                Odds1 = sel.Odds1
+                                Odds1 = sel.Odds1,
+                                IsTournament = item.IsTournament,
+                                LeagueName = item.LeagueName
                             };
 
                             string itemDescription = FormatWagerDetailCompleteDescription(wagerDetailCompleteDescriptionModel);
@@ -2043,14 +2048,9 @@ namespace WolfApiCore.DbTier
             string lastHomeTeamName = homeTeamWords?.Length == 1 ? homeTeamWords[0] : homeTeamWords![ homeTeamWords.Length - 2] + " " + homeTeamWords[ homeTeamWords.Length - 1];
             string lastVisitorTeamName = visitorTeamWords?.Length == 1 ? visitorTeamWords[0] : visitorTeamWords![ visitorTeamWords.Length - 2] + " " + visitorTeamWords[ visitorTeamWords.Length - 1];
 
-            completeDescription = $"{wagerDetailDescription!.MarketName}: {player} {wagerDetailDescription.Name} {line}{odds} [{lastHomeTeamName} vs {lastVisitorTeamName}/{wagerDetailDescription!.SportName}]";
+            bool isTournament = wagerDetailDescription!.IsTournament.HasValue ? (bool)wagerDetailDescription.IsTournament : false;
 
-            if ( (bool)wagerDetailDescription.IsTournament! )
-            {
-                string regexPattern = @"\{lastHomeTeamName\}(.*?)(?=\{lastVisitorTeamName\})";
-
-                completeDescription = Regex.Replace(completeDescription, regexPattern, wagerDetailDescription.LeagueName!);
-            }
+            completeDescription = $"{wagerDetailDescription!.MarketName}: {player} {wagerDetailDescription.Name} {line}{odds} [{ ( !isTournament ? $"{lastHomeTeamName} vs {lastVisitorTeamName}" : wagerDetailDescription.LeagueName!) }/{wagerDetailDescription!.SportName}]";
 
             return completeDescription;
         }
