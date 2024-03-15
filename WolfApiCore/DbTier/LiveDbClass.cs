@@ -226,7 +226,7 @@ namespace WolfApiCore.DbTier
                                     LSport_ScreenLeagueDto lg = new LSport_ScreenLeagueDto()
                                     {
                                         ShowLeague = false,
-                                        LeagueName = game.LocationName + " - " + game.LeagueName,   ///game.LeagueName + " - " + game.LocationName,
+                                        LeagueName = $"{ (HasLocationNameException(game.LocationName) ? game.LeagueName : $"{game.LocationName} - {game.LeagueName}") }",   ///game.LeagueName + " - " + game.LocationName,
                                         LeagueId = game.LeagueId,
                                         Games = new List<LSportGameDto>()
                                     };
@@ -241,7 +241,7 @@ namespace WolfApiCore.DbTier
                                 LSport_ScreenLeagueDto lg = new LSport_ScreenLeagueDto()
                                 {
                                     ShowLeague = false,
-                                    LeagueName = game.LocationName + " - " + game.LeagueName, //game.LeagueName + " - " + game.LocationName,
+                                    LeagueName = $"{ (HasLocationNameException(game.LocationName) ? game.LeagueName : $"{game.LocationName} - {game.LeagueName}") }", //game.LeagueName + " - " + game.LocationName,
                                     LeagueId = game.LeagueId,
                                     IsTournament = game.IsTournament,
                                     Games = new List<LSportGameDto>()
@@ -346,7 +346,7 @@ namespace WolfApiCore.DbTier
                             LSport_ScreenLeagueDto lg = new LSport_ScreenLeagueDto()
                             {
                                 ShowLeague = false,
-                                LeagueName = game.LeagueName + " - " + game.LocationName,
+                                LeagueName = $"{ (HasLocationNameException(game.LocationName) ? game.LeagueName : $"{game.LocationName} - {game.LeagueName}") }",
                                 LeagueId = game.LeagueId,
                                 Games = new List<LSportGameDto>()
                             };
@@ -362,7 +362,7 @@ namespace WolfApiCore.DbTier
                         LSport_ScreenLeagueDto lg = new LSport_ScreenLeagueDto()
                         {
                             ShowLeague = false,
-                            LeagueName = game.LeagueName + " - " + game.LocationName,
+                            LeagueName = $"{ (HasLocationNameException(game.LocationName) ? game.LeagueName : $"{game.LocationName} - {game.LeagueName}") }",
                             LeagueId = game.LeagueId,
                             Games = new List<LSportGameDto>()
                         };
@@ -1168,6 +1168,13 @@ namespace WolfApiCore.DbTier
                 _ = ex.Message;
             }
             return resp;
+        }
+
+        private bool HasLocationNameException(string locationName)
+        {
+            string[] locationNameExceptions = { "United States" };        
+
+            return locationName.Contains(locationNameExceptions[0]);
         }
     }//end class
 
