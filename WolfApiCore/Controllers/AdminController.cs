@@ -53,6 +53,13 @@ namespace WolfApiCore.Controllers
             return new LiveAdminDbClass().SetProfileLimits(req);
         }
 
+        [HttpPost("SetProfileLimitsMassive")]
+        public List<LimitsRightsVerificationResp> SetProfileLimitsMassive(List<SetProfileLimitsReq> req)
+        {
+            return new LiveAdminDbClass().SetProfileLimitsMassive(req);
+        }
+
+
         [HttpPost("GetPlayersByIdAgent")]
         public List<GetPlayerListResp> GetPlayersByIdAgent(GetPlayerListReq req)
         {

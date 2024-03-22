@@ -65,7 +65,7 @@ namespace WolfApiCore.DbTier
             return PlayersByIdAgentResp;
         }
 
-        public List<LimitsRightsVerificationResp> SetProfileLimits(List<SetProfileLimitsReq> req)
+        public List<LimitsRightsVerificationResp> SetProfileLimitsMassive(List<SetProfileLimitsReq> req)
         {
             List<LimitsRightsVerificationResp> resp = new();
             try
@@ -74,7 +74,7 @@ namespace WolfApiCore.DbTier
                 {
                     foreach (var item in req)
                     {
-                        string sql = "exec sp_MGL_SetProfileLimits @AgentId ,@IdWagerType ,@SportId ,@LeagueId, @SportName, @LeagueName, @FixtureId ,@MaxWager ,@MinWager ,@MaxPayout ,@MinPayout  ,@MinPrice ,@MaxPrice ,@TotAmtGame";
+                        string sql = "exec sp_MGL_SetProfileLimitsMassive @AgentId ,@IdWagerType ,@SportId ,@LeagueId, @SportName, @LeagueName, @FixtureId ,@MaxWager ,@MinWager ,@MaxPayout ,@MinPayout  ,@MinPrice ,@MaxPrice ,@TotAmtGame";
                         var values = new { item.AgentId, item.IdWagerType, item.SportId, item.LeagueId, item.SportName, item.LeagueName, item.FixtureId, item.MaxWager, item.MinWager, item.MaxPayout, item.MinPayout, item.MinPrice, item.MaxPrice, item.TotAmtGame };
 
                         using var connection = new SqlConnection(moverConnString);
@@ -82,9 +82,12 @@ namespace WolfApiCore.DbTier
                         LimitsRightsVerificationResp limitsMaster = CheckLimitsRights(item);
                         switch (limitsMaster.Code)
                         {
+                            //codigo 14, esta correcto y puede actualizar
                             case 14:
                                 foreach (var node in HierarchyNodes)
                                 {
+
+
                                     if (item.AgentId == node.AgentID)
                                     {
                                         _ = connection.Query<ProfileLimitsResp>(sql, new { node.AgentID, item.IdWagerType, item.SportId, item.LeagueId, item.SportName, item.LeagueName, item.FixtureId, item.MaxWager, item.MinWager, item.MaxPayout, item.MinPayout, item.MinPrice, item.MaxPrice, item.TotAmtGame });
@@ -99,12 +102,13 @@ namespace WolfApiCore.DbTier
                                             MinWager = item.MinWager,
                                             MaxPayout = item.MaxPayout,
                                             MinPrice = item.MinPrice,
-                                            MaxPrice =item.MaxPrice,
-                                            TotAmtGame= item.TotAmtGame
+                                            MaxPrice = item.MaxPrice,
+                                            TotAmtGame = item.TotAmtGame
                                         });
                                     }
                                     else
                                     {
+
                                         GetProfileLimitsReq reqMaster = new GetProfileLimitsReq()
                                         {
                                             AgentId = node.AgentID,
@@ -130,12 +134,12 @@ namespace WolfApiCore.DbTier
                                             reqMaster
                                         };
                                         List<ProfileLimitsResp> ProfileLimitsResp = GetProfileLimits(ListReq);
+
                                         if (ProfileLimitsResp.Count() > 0)
                                         {
-                                            //if (ProfileLimitsResp[0].MinWager < item.MinWager || ProfileLimitsResp[0].MaxWager > item.MaxWager)
-                                            //{
 
-                                            //}
+
+
                                             _ = connection.Query<ProfileLimitsResp>(sql, new { node.AgentID, item.IdWagerType, item.SportId, item.LeagueId, item.SportName, item.LeagueName, item.FixtureId, item.MaxWager, item.MinWager, item.MaxPayout, item.MinPayout, item.MinPrice, item.MaxPrice, item.TotAmtGame });
                                             limitsMaster.AgentId = node.AgentID;
                                             limitsMaster.Applied = true;
@@ -188,12 +192,19 @@ namespace WolfApiCore.DbTier
                                                 TotAmtGame = item.TotAmtGame,
                                             });
                                         }
+
+
+
+
+
                                     }
                                 }
                                 break;
                             case 16:
                                 foreach (var node in HierarchyNodes)
                                 {
+
+
                                     _ = connection.Query<ProfileLimitsResp>(sql, new { node.AgentID, item.IdWagerType, item.SportId, item.LeagueId, item.SportName, item.LeagueName, item.FixtureId, item.MaxWager, item.MinWager, item.MaxPayout, item.MinPayout, item.MinPrice, item.MaxPrice, item.TotAmtGame });
                                     limitsMaster.AgentId = node.AgentID;
                                     limitsMaster.Applied = true;
@@ -219,8 +230,11 @@ namespace WolfApiCore.DbTier
                                 }
                                 break;
                             case 23:
-                                if (item.MinWager >= limitsMaster.MinWager && item.MaxWager <= limitsMaster.MaxWager && item.MaxPayout <= limitsMaster.MaxPayout)
+                                var canupd3 = CanUpdWagerLimits(item.AgentId);
+
+                                if (canupd3)
                                 {
+
                                     _ = connection.Query<ProfileLimitsResp>(sql, values);
                                     limitsMaster.AgentId = item.AgentId;
                                     limitsMaster.Message = "Limits applied, are in of the master agent range.";
@@ -240,29 +254,156 @@ namespace WolfApiCore.DbTier
                                         MaxWager = item.MaxWager,
                                         MinWager = item.MinWager,
                                         MaxPayout = item.MaxPayout,
-
                                         MinPrice = item.MinPrice,
                                         MaxPrice = item.MaxPrice,
                                         TotAmtGame = item.TotAmtGame,
                                     });
+
+
                                 }
                                 else
                                 {
-                                    resp.Add(new LimitsRightsVerificationResp()
-                                    {
-                                        AgentId = item.AgentId,
-                                        Code = limitsMaster.Code,
-                                        Message = limitsMaster.Message,
-                                        Applied = limitsMaster.Applied,
-                                        MaxWager = item.MaxWager,
-                                        MinWager = item.MinWager,
-                                        MaxPayout = item.MaxPayout,
 
-                                        MinPrice = item.MinPrice,
-                                        MaxPrice = item.MaxPrice,
-                                        TotAmtGame = item.TotAmtGame,
-                                    });
+                                    if (item.MinWager >= limitsMaster.MinWager && item.MaxWager <= limitsMaster.MaxWager && item.MaxPayout <= limitsMaster.MaxPayout)
+                                    {
+                                        foreach (var node in HierarchyNodes)
+                                        {
+
+
+                                            if (item.AgentId == node.AgentID)
+                                            {
+                                                _ = connection.Query<ProfileLimitsResp>(sql, new { node.AgentID, item.IdWagerType, item.SportId, item.LeagueId, item.SportName, item.LeagueName, item.FixtureId, item.MaxWager, item.MinWager, item.MaxPayout, item.MinPayout, item.MinPrice, item.MaxPrice, item.TotAmtGame });
+                                                limitsMaster.AgentId = node.AgentID;
+                                                resp.Add(new LimitsRightsVerificationResp()
+                                                {
+                                                    AgentId = node.AgentID,
+                                                    Code = limitsMaster.Code,
+                                                    Message = limitsMaster.Message,
+                                                    Applied = true,
+                                                    MaxWager = item.MaxWager,
+                                                    MinWager = item.MinWager,
+                                                    MaxPayout = item.MaxPayout,
+                                                    MinPrice = item.MinPrice,
+                                                    MaxPrice = item.MaxPrice,
+                                                    TotAmtGame = item.TotAmtGame
+                                                });
+                                            }
+                                            else
+                                            {
+
+                                                GetProfileLimitsReq reqMaster = new GetProfileLimitsReq()
+                                                {
+                                                    AgentId = node.AgentID,
+                                                    FixtureId = item.FixtureId,
+                                                    IdWagerType = item.IdWagerType,
+                                                    LeagueId = item.LeagueId,
+                                                    SportId = item.SportId,
+                                                    LeagueName = item.LeagueName,
+                                                    SportName = item.SportName,
+                                                    MaxPayout = item.MaxPayout,
+                                                    MinPayout = item.MinPayout,
+                                                    MaxWager = item.MaxWager,
+                                                    MinWager = item.MinWager,
+
+                                                    MinPrice = item.MinPrice,
+                                                    MaxPrice = item.MaxPrice,
+                                                    TotAmtGame = item.TotAmtGame,
+
+                                                    ModifiedAt = DateTime.Now
+                                                };
+                                                var ListReq = new List<GetProfileLimitsReq>
+                                        {
+                                            reqMaster
+                                        };
+                                                List<ProfileLimitsResp> ProfileLimitsResp = GetProfileLimits(ListReq);
+
+                                                if (ProfileLimitsResp.Count() > 0)
+                                                {
+
+
+
+                                                    _ = connection.Query<ProfileLimitsResp>(sql, new { node.AgentID, item.IdWagerType, item.SportId, item.LeagueId, item.SportName, item.LeagueName, item.FixtureId, item.MaxWager, item.MinWager, item.MaxPayout, item.MinPayout, item.MinPrice, item.MaxPrice, item.TotAmtGame });
+                                                    limitsMaster.AgentId = node.AgentID;
+                                                    limitsMaster.Applied = true;
+                                                    limitsMaster.MaxWager = item.MaxWager;
+                                                    limitsMaster.MinWager = item.MinWager;
+                                                    limitsMaster.MaxPayout = item.MaxPayout;
+
+                                                    limitsMaster.MinPrice = item.MinPrice;
+                                                    limitsMaster.MaxPrice = item.MaxPrice;
+                                                    limitsMaster.TotAmtGame = item.TotAmtGame;
+
+                                                    resp.Add(new LimitsRightsVerificationResp()
+                                                    {
+                                                        AgentId = node.AgentID,
+                                                        Code = 14,
+                                                        Message = "Limits applied",
+                                                        Applied = true,
+                                                        MaxWager = item.MaxWager,
+                                                        MinWager = item.MinWager,
+                                                        MaxPayout = item.MaxPayout,
+                                                        MinPrice = item.MinPrice,
+                                                        MaxPrice = item.MaxPrice,
+                                                        TotAmtGame = item.TotAmtGame,
+                                                    });
+                                                }
+                                                else
+                                                {
+                                                    _ = connection.Query<ProfileLimitsResp>(sql, new { node.AgentID, item.IdWagerType, item.SportId, item.LeagueId, item.SportName, item.LeagueName, item.FixtureId, item.MaxWager, item.MinWager, item.MaxPayout, item.MinPayout, item.MinPrice, item.MaxPrice, item.TotAmtGame });
+                                                    limitsMaster.AgentId = node.AgentID;
+                                                    limitsMaster.Applied = true;
+                                                    limitsMaster.MaxWager = item.MaxWager;
+                                                    limitsMaster.MinWager = item.MinWager;
+                                                    limitsMaster.MaxPayout = item.MaxPayout;
+
+                                                    limitsMaster.MinPrice = item.MinPrice;
+                                                    limitsMaster.MaxPrice = item.MaxPrice;
+                                                    limitsMaster.TotAmtGame = item.TotAmtGame;
+
+                                                    resp.Add(new LimitsRightsVerificationResp()
+                                                    {
+                                                        AgentId = node.AgentID,
+                                                        Code = 14,
+                                                        Message = "Limits applied",
+                                                        Applied = true,
+                                                        MaxWager = item.MaxWager,
+                                                        MinWager = item.MinWager,
+                                                        MaxPayout = item.MaxPayout,
+                                                        MinPrice = item.MinPrice,
+                                                        MaxPrice = item.MaxPrice,
+                                                        TotAmtGame = item.TotAmtGame,
+                                                    });
+                                                }
+
+
+
+
+
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        resp.Add(new LimitsRightsVerificationResp()
+                                        {
+                                            AgentId = item.AgentId,
+                                            Code = 66,
+                                            Message = "Limited by Master Agent, out of range.",
+                                            Applied = limitsMaster.Applied,
+                                            MaxWager = item.MaxWager,
+                                            MinWager = item.MinWager,
+                                            MaxPayout = item.MaxPayout,
+
+                                            MinPrice = item.MinPrice,
+                                            MaxPrice = item.MaxPrice,
+                                            TotAmtGame = item.TotAmtGame,
+                                        });
+                                    }
+
+
                                 }
+
+
                                 break;
                             case 51:
                             default:
@@ -275,7 +416,6 @@ namespace WolfApiCore.DbTier
                                     MaxWager = item.MaxWager,
                                     MinWager = item.MinWager,
                                     MaxPayout = item.MaxPayout,
-
                                     MinPrice = item.MinPrice,
                                     MaxPrice = item.MaxPrice,
                                     TotAmtGame = item.TotAmtGame,
@@ -304,12 +444,418 @@ namespace WolfApiCore.DbTier
             return resp;
         }
 
+
+
+        public List<LimitsRightsVerificationResp> SetProfileLimits(List<SetProfileLimitsReq> req)
+        {
+            List<LimitsRightsVerificationResp> resp = new();
+            try
+            {
+                if (req.Count() > 0)
+                {
+                    foreach (var item in req)
+                    {
+                        string sql = "exec sp_MGL_SetProfileLimits @AgentId ,@IdWagerType ,@SportId ,@LeagueId, @SportName, @LeagueName, @FixtureId ,@MaxWager ,@MinWager ,@MaxPayout ,@MinPayout  ,@MinPrice ,@MaxPrice ,@TotAmtGame";
+                        var values = new { item.AgentId, item.IdWagerType, item.SportId, item.LeagueId, item.SportName, item.LeagueName, item.FixtureId, item.MaxWager, item.MinWager, item.MaxPayout, item.MinPayout, item.MinPrice, item.MaxPrice, item.TotAmtGame };
+
+                        using var connection = new SqlConnection(moverConnString);
+                        List<GetAgentHierarchyResp> HierarchyNodes = GetAgentHierarchy(new GetAgentHierarchyReq() { IdAgent = item.AgentId });
+                        LimitsRightsVerificationResp limitsMaster = CheckLimitsRights(item);
+                        switch (limitsMaster.Code)
+                        {
+                            //codigo 14, esta correcto y puede actualizar
+                            case 14:
+                                foreach (var node in HierarchyNodes)
+                                {
+
+
+                                    if (item.AgentId == node.AgentID)
+                                    {
+                                        _ = connection.Query<ProfileLimitsResp>(sql, new { node.AgentID, item.IdWagerType, item.SportId, item.LeagueId, item.SportName, item.LeagueName, item.FixtureId, item.MaxWager, item.MinWager, item.MaxPayout, item.MinPayout, item.MinPrice, item.MaxPrice, item.TotAmtGame });
+                                        limitsMaster.AgentId = node.AgentID;
+                                        resp.Add(new LimitsRightsVerificationResp()
+                                        {
+                                            AgentId = node.AgentID,
+                                            Code = limitsMaster.Code,
+                                            Message = limitsMaster.Message,
+                                            Applied = true,
+                                            MaxWager = item.MaxWager,
+                                            MinWager = item.MinWager,
+                                            MaxPayout = item.MaxPayout,
+                                            MinPrice = item.MinPrice,
+                                            MaxPrice = item.MaxPrice,
+                                            TotAmtGame = item.TotAmtGame
+                                        });
+                                    }
+                                    else
+                                    {
+
+                                        GetProfileLimitsReq reqMaster = new GetProfileLimitsReq()
+                                        {
+                                            AgentId = node.AgentID,
+                                            FixtureId = item.FixtureId,
+                                            IdWagerType = item.IdWagerType,
+                                            LeagueId = item.LeagueId,
+                                            SportId = item.SportId,
+                                            LeagueName = item.LeagueName,
+                                            SportName = item.SportName,
+                                            MaxPayout = item.MaxPayout,
+                                            MinPayout = item.MinPayout,
+                                            MaxWager = item.MaxWager,
+                                            MinWager = item.MinWager,
+
+                                            MinPrice = item.MinPrice,
+                                            MaxPrice = item.MaxPrice,
+                                            TotAmtGame = item.TotAmtGame,
+
+                                            ModifiedAt = DateTime.Now
+                                        };
+                                        var ListReq = new List<GetProfileLimitsReq>
+                                        {
+                                            reqMaster
+                                        };
+                                        List<ProfileLimitsResp> ProfileLimitsResp = GetProfileLimits(ListReq);
+
+                                            if (ProfileLimitsResp.Count() > 0)
+                                            {
+
+
+
+                                                _ = connection.Query<ProfileLimitsResp>(sql, new { node.AgentID, item.IdWagerType, item.SportId, item.LeagueId, item.SportName, item.LeagueName, item.FixtureId, item.MaxWager, item.MinWager, item.MaxPayout, item.MinPayout, item.MinPrice, item.MaxPrice, item.TotAmtGame });
+                                                limitsMaster.AgentId = node.AgentID;
+                                                limitsMaster.Applied = true;
+                                                limitsMaster.MaxWager = item.MaxWager;
+                                                limitsMaster.MinWager = item.MinWager;
+                                                limitsMaster.MaxPayout = item.MaxPayout;
+
+                                                limitsMaster.MinPrice = item.MinPrice;
+                                                limitsMaster.MaxPrice = item.MaxPrice;
+                                                limitsMaster.TotAmtGame = item.TotAmtGame;
+
+                                                resp.Add(new LimitsRightsVerificationResp()
+                                                {
+                                                    AgentId = node.AgentID,
+                                                    Code = limitsMaster.Code,
+                                                    Message = limitsMaster.Message,
+                                                    Applied = true,
+                                                    MaxWager = item.MaxWager,
+                                                    MinWager = item.MinWager,
+                                                    MaxPayout = item.MaxPayout,
+                                                    MinPrice = item.MinPrice,
+                                                    MaxPrice = item.MaxPrice,
+                                                    TotAmtGame = item.TotAmtGame,
+                                                });
+                                            }
+                                            else
+                                            {
+                                                _ = connection.Query<ProfileLimitsResp>(sql, new { node.AgentID, item.IdWagerType, item.SportId, item.LeagueId, item.SportName, item.LeagueName, item.FixtureId, item.MaxWager, item.MinWager, item.MaxPayout, item.MinPayout, item.MinPrice, item.MaxPrice, item.TotAmtGame });
+                                                limitsMaster.AgentId = node.AgentID;
+                                                limitsMaster.Applied = true;
+                                                limitsMaster.MaxWager = item.MaxWager;
+                                                limitsMaster.MinWager = item.MinWager;
+                                                limitsMaster.MaxPayout = item.MaxPayout;
+
+                                                limitsMaster.MinPrice = item.MinPrice;
+                                                limitsMaster.MaxPrice = item.MaxPrice;
+                                                limitsMaster.TotAmtGame = item.TotAmtGame;
+
+                                                resp.Add(new LimitsRightsVerificationResp()
+                                                {
+                                                    AgentId = node.AgentID,
+                                                    Code = limitsMaster.Code,
+                                                    Message = limitsMaster.Message,
+                                                    Applied = true,
+                                                    MaxWager = item.MaxWager,
+                                                    MinWager = item.MinWager,
+                                                    MaxPayout = item.MaxPayout,
+                                                    MinPrice = item.MinPrice,
+                                                    MaxPrice = item.MaxPrice,
+                                                    TotAmtGame = item.TotAmtGame,
+                                                });
+                                            }
+
+
+                                        
+
+
+                                    }
+                                }
+                                break;
+                            case 16:
+                                foreach (var node in HierarchyNodes)
+                                {
+
+
+                                    _ = connection.Query<ProfileLimitsResp>(sql, new { node.AgentID, item.IdWagerType, item.SportId, item.LeagueId, item.SportName, item.LeagueName, item.FixtureId, item.MaxWager, item.MinWager, item.MaxPayout, item.MinPayout, item.MinPrice, item.MaxPrice, item.TotAmtGame });
+                                    limitsMaster.AgentId = node.AgentID;
+                                    limitsMaster.Applied = true;
+                                    limitsMaster.MaxWager = item.MaxWager;
+                                    limitsMaster.MinWager = item.MinWager;
+                                    limitsMaster.MaxPayout = item.MaxPayout;
+                                    limitsMaster.MinPrice = item.MinPrice;
+                                    limitsMaster.MaxPrice = item.MaxPrice;
+                                    limitsMaster.TotAmtGame = item.TotAmtGame;
+                                    resp.Add(new LimitsRightsVerificationResp()
+                                    {
+                                        AgentId = node.AgentID,
+                                        Code = limitsMaster.Code,
+                                        Message = limitsMaster.Message,
+                                        Applied = true,
+                                        MaxWager = item.MaxWager,
+                                        MinWager = item.MinWager,
+                                        MaxPayout = item.MaxPayout,
+                                        MinPrice = item.MinPrice,
+                                        MaxPrice = item.MaxPrice,
+                                        TotAmtGame = item.TotAmtGame,
+                                    });
+                                }
+                                break;
+                            case 23:
+                                var canupd3 = CanUpdWagerLimits(item.AgentId);
+
+                                if (canupd3)
+                                {
+
+                                    _ = connection.Query<ProfileLimitsResp>(sql, values);
+                                    limitsMaster.AgentId = item.AgentId;
+                                    limitsMaster.Message = "Limits applied, are in of the master agent range.";
+                                    limitsMaster.Applied = true;
+                                    limitsMaster.MaxWager = item.MaxWager;
+                                    limitsMaster.MinWager = item.MinWager;
+                                    limitsMaster.MaxPayout = item.MaxPayout;
+                                    limitsMaster.MinPrice = item.MinPrice;
+                                    limitsMaster.MaxPrice = item.MaxPrice;
+                                    limitsMaster.TotAmtGame = item.TotAmtGame;
+                                    resp.Add(new LimitsRightsVerificationResp()
+                                    {
+                                        AgentId = item.AgentId,
+                                        Code = 14,
+                                        Message = limitsMaster.Message,
+                                        Applied = true,
+                                        MaxWager = item.MaxWager,
+                                        MinWager = item.MinWager,
+                                        MaxPayout = item.MaxPayout,
+                                        MinPrice = item.MinPrice,
+                                        MaxPrice = item.MaxPrice,
+                                        TotAmtGame = item.TotAmtGame,
+                                    });
+
+
+                                }
+                                else
+                                {
+
+                                    if (item.MinWager >= limitsMaster.MinWager && item.MaxWager <= limitsMaster.MaxWager && item.MaxPayout <= limitsMaster.MaxPayout)
+                                    {
+                                        foreach (var node in HierarchyNodes)
+                                        {
+
+
+                                            if (item.AgentId == node.AgentID)
+                                            {
+                                                _ = connection.Query<ProfileLimitsResp>(sql, new { node.AgentID, item.IdWagerType, item.SportId, item.LeagueId, item.SportName, item.LeagueName, item.FixtureId, item.MaxWager, item.MinWager, item.MaxPayout, item.MinPayout, item.MinPrice, item.MaxPrice, item.TotAmtGame });
+                                                limitsMaster.AgentId = node.AgentID;
+                                                resp.Add(new LimitsRightsVerificationResp()
+                                                {
+                                                    AgentId = node.AgentID,
+                                                    Code = limitsMaster.Code,
+                                                    Message = limitsMaster.Message,
+                                                    Applied = true,
+                                                    MaxWager = item.MaxWager,
+                                                    MinWager = item.MinWager,
+                                                    MaxPayout = item.MaxPayout,
+                                                    MinPrice = item.MinPrice,
+                                                    MaxPrice = item.MaxPrice,
+                                                    TotAmtGame = item.TotAmtGame
+                                                });
+                                            }
+                                            else
+                                            {
+
+                                                GetProfileLimitsReq reqMaster = new GetProfileLimitsReq()
+                                                {
+                                                    AgentId = node.AgentID,
+                                                    FixtureId = item.FixtureId,
+                                                    IdWagerType = item.IdWagerType,
+                                                    LeagueId = item.LeagueId,
+                                                    SportId = item.SportId,
+                                                    LeagueName = item.LeagueName,
+                                                    SportName = item.SportName,
+                                                    MaxPayout = item.MaxPayout,
+                                                    MinPayout = item.MinPayout,
+                                                    MaxWager = item.MaxWager,
+                                                    MinWager = item.MinWager,
+
+                                                    MinPrice = item.MinPrice,
+                                                    MaxPrice = item.MaxPrice,
+                                                    TotAmtGame = item.TotAmtGame,
+
+                                                    ModifiedAt = DateTime.Now
+                                                };
+                                                var ListReq = new List<GetProfileLimitsReq>
+                                        {
+                                            reqMaster
+                                        };
+                                                List<ProfileLimitsResp> ProfileLimitsResp = GetProfileLimits(ListReq);
+
+                                                if (ProfileLimitsResp.Count() > 0)
+                                                {
+
+
+
+                                                    _ = connection.Query<ProfileLimitsResp>(sql, new { node.AgentID, item.IdWagerType, item.SportId, item.LeagueId, item.SportName, item.LeagueName, item.FixtureId, item.MaxWager, item.MinWager, item.MaxPayout, item.MinPayout, item.MinPrice, item.MaxPrice, item.TotAmtGame });
+                                                    limitsMaster.AgentId = node.AgentID;
+                                                    limitsMaster.Applied = true;
+                                                    limitsMaster.MaxWager = item.MaxWager;
+                                                    limitsMaster.MinWager = item.MinWager;
+                                                    limitsMaster.MaxPayout = item.MaxPayout;
+
+                                                    limitsMaster.MinPrice = item.MinPrice;
+                                                    limitsMaster.MaxPrice = item.MaxPrice;
+                                                    limitsMaster.TotAmtGame = item.TotAmtGame;
+
+                                                    resp.Add(new LimitsRightsVerificationResp()
+                                                    {
+                                                        AgentId = node.AgentID,
+                                                        Code =14,
+                                                        Message = "Limits applied",
+                                                        Applied = true,
+                                                        MaxWager = item.MaxWager,
+                                                        MinWager = item.MinWager,
+                                                        MaxPayout = item.MaxPayout,
+                                                        MinPrice = item.MinPrice,
+                                                        MaxPrice = item.MaxPrice,
+                                                        TotAmtGame = item.TotAmtGame,
+                                                    });
+                                                }
+                                                else
+                                                {
+                                                    _ = connection.Query<ProfileLimitsResp>(sql, new { node.AgentID, item.IdWagerType, item.SportId, item.LeagueId, item.SportName, item.LeagueName, item.FixtureId, item.MaxWager, item.MinWager, item.MaxPayout, item.MinPayout, item.MinPrice, item.MaxPrice, item.TotAmtGame });
+                                                    limitsMaster.AgentId = node.AgentID;
+                                                    limitsMaster.Applied = true;
+                                                    limitsMaster.MaxWager = item.MaxWager;
+                                                    limitsMaster.MinWager = item.MinWager;
+                                                    limitsMaster.MaxPayout = item.MaxPayout;
+
+                                                    limitsMaster.MinPrice = item.MinPrice;
+                                                    limitsMaster.MaxPrice = item.MaxPrice;
+                                                    limitsMaster.TotAmtGame = item.TotAmtGame;
+
+                                                    resp.Add(new LimitsRightsVerificationResp()
+                                                    {
+                                                        AgentId = node.AgentID,
+                                                        Code = 14,
+                                                        Message = "Limits applied",
+                                                        Applied = true,
+                                                        MaxWager = item.MaxWager,
+                                                        MinWager = item.MinWager,
+                                                        MaxPayout = item.MaxPayout,
+                                                        MinPrice = item.MinPrice,
+                                                        MaxPrice = item.MaxPrice,
+                                                        TotAmtGame = item.TotAmtGame,
+                                                    });
+                                                }
+
+
+
+
+
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        resp.Add(new LimitsRightsVerificationResp()
+                                        {
+                                            AgentId = item.AgentId,
+                                            Code =66,
+                                            Message = "Limited by Master Agent, out of range.",
+                                            Applied = limitsMaster.Applied,
+                                            MaxWager = item.MaxWager,
+                                            MinWager = item.MinWager,
+                                            MaxPayout = item.MaxPayout,
+
+                                            MinPrice = item.MinPrice,
+                                            MaxPrice = item.MaxPrice,
+                                            TotAmtGame = item.TotAmtGame,
+                                        });
+                                    }
+
+
+                                }
+
+
+                                break;
+                            case 51:
+                            default:
+                                resp.Add(new LimitsRightsVerificationResp()
+                                {
+                                    AgentId = item.AgentId,
+                                    Code = limitsMaster.Code,
+                                    Message = limitsMaster.Message,
+                                    Applied = limitsMaster.Applied,
+                                    MaxWager = item.MaxWager,
+                                    MinWager = item.MinWager,
+                                    MaxPayout = item.MaxPayout,
+                                    MinPrice = item.MinPrice,
+                                    MaxPrice = item.MaxPrice,
+                                    TotAmtGame = item.TotAmtGame,
+                                });
+                                break;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                resp.Add(new LimitsRightsVerificationResp()
+                {
+                    AgentId = -1,
+                    Code = -1,
+                    Message = "Catch a exception: " + ex.Message,
+                    Applied = false,
+                    MaxWager = 0,
+                    MinWager = 0,
+                    MaxPayout = 0,
+                    MinPrice = 0,
+                    MaxPrice = 0,
+                    TotAmtGame = 0,
+                });
+            }
+            return resp;
+        }
+
+        private bool CanUpdWagerLimits(int prmIdAgent)
+        {
+            string sql = "AgentRights_CanUpdWagerLimits";
+            int result;
+            using (var connection = new SqlConnection(dgsConnString))
+            {
+                using (var command = new SqlCommand(sql, connection))
+                {
+                    command.CommandType = System.Data.CommandType.StoredProcedure;
+
+                    // Agregar el parámetro prmIdAgent
+                    command.Parameters.Add(new SqlParameter("@prmIdAgent", prmIdAgent));
+
+                    connection.Open();
+                    result = (int)command.ExecuteScalar();
+                }
+            }
+
+            return result == 1;
+        }
         public LimitsRightsVerificationResp CheckLimitsRights(SetProfileLimitsReq req)
         {
             LimitsRightsVerificationResp resp = null;
             AgentTreeResp oAgent = null;
+            GetAgentHierarchyResp oAgentDeph = null;
             try
             {
+                List<GetAgentHierarchyResp> HierarchyNodes = GetAgentHierarchy(new GetAgentHierarchyReq() { IdAgent = req.AgentId });
+
+
+
                 List<AgentTreeResp> HierrarchyList = GetAgentTree(new GetAgentHierarchyReq() { IdAgent = req.AgentId });
                 if (HierrarchyList != null)
                 {
@@ -317,79 +863,109 @@ namespace WolfApiCore.DbTier
                 }
                 if (oAgent != null)
                 {
-                    if (oAgent.AgentLevel == 2)
+                    oAgentDeph = HierarchyNodes.Where(x => x.AgentID == req.AgentId).FirstOrDefault();
+                    var canupd3 = CanUpdWagerLimits(req.AgentId);
+
+                    if (canupd3)
                     {
                         resp = new LimitsRightsVerificationResp()
                         {
                             Code = 14,
-                            Message = "Limits applied, master agent account.",
+                            Message = "Limits applied. ",
                             Applied = true,
                             MaxWager = 0,
                             MinWager = 0,
                             MaxPayout = 0
                         };
+
                     }
-                    else if (oAgent.AgentLevel > 2)
+
+                    else
                     {
-                        AgentTreeResp oAgentMaster = HierrarchyList.Where(x => x.AgentLevel == (oAgent.AgentLevel - 1)).FirstOrDefault();
-                        if (oAgentMaster != null)
+
+                        // cuando es 2 es porque es el Agent Master
+                        if (oAgent.AgentLevel == 2)
                         {
-                            GetProfileLimitsReq reqMaster = new GetProfileLimitsReq()
+                            resp = new LimitsRightsVerificationResp()
                             {
-                                AgentId = oAgentMaster.IdAgent,
-                                FixtureId = req.FixtureId,
-                                IdWagerType = req.IdWagerType,
-                                LeagueId = req.LeagueId,
-                                SportId = req.SportId,
-                                SportName = req.SportName,
-                                LeagueName = req.LeagueName,
-                                MaxPayout = req.MaxPayout,
-                                MinPayout = req.MinPayout,
-                                MaxWager = req.MaxWager,
-                                MinWager = req.MinWager,
-                                ModifiedAt = DateTime.Now
+                                Code = 14,
+                                Message = "Limits applied, master agent account.",
+                                Applied = true,
+                                MaxWager = 0,
+                                MinWager = 0,
+                                MaxPayout = 0
                             };
-                            var LimitList = new List<GetProfileLimitsReq>() { reqMaster };
-                            List<ProfileLimitsResp> ProfileLimitsResp = GetProfileLimits(LimitList);
-                            if (ProfileLimitsResp != null && ProfileLimitsResp.Count() > 0)
+                        }
+
+                        // cuando es mayor a 2 es porque es un Sub Agent
+
+                        else if (oAgent.AgentLevel > 2)
+                        {
+                            AgentTreeResp oAgentMaster = HierrarchyList.Where(x => x.AgentLevel == (oAgent.AgentLevel - 1)).FirstOrDefault();
+                            if (oAgentMaster != null)
                             {
-                                resp = new LimitsRightsVerificationResp()
+                                GetProfileLimitsReq reqMaster = new GetProfileLimitsReq()
                                 {
+                                    AgentId = oAgentMaster.IdAgent,
+                                    FixtureId = req.FixtureId,
+                                    IdWagerType = req.IdWagerType,
+                                    LeagueId = req.LeagueId,
+                                    SportId = req.SportId,
+                                    SportName = req.SportName,
+                                    LeagueName = req.LeagueName,
+                                    MaxPayout = req.MaxPayout,
+                                    MinPayout = req.MinPayout,
+                                    MaxWager = req.MaxWager,
+                                    MinWager = req.MinWager,
+                                    ModifiedAt = DateTime.Now
+                                };
+                                var LimitList = new List<GetProfileLimitsReq>() { reqMaster };
+                                List<ProfileLimitsResp> ProfileLimitsResp = GetProfileLimits(LimitList);
+                                if (ProfileLimitsResp != null && ProfileLimitsResp.Count() > 0)
+                                {
+                                    resp = new LimitsRightsVerificationResp()
+                                    {
                                     Code = 23,
-                                    Message = "Limited by Master Agent, out of range.",
-                                    Applied = false,
-                                    MaxWager = ProfileLimitsResp[0].MaxWager,
-                                    MinWager = ProfileLimitsResp[0].MinWager,
-                                    MaxPayout = ProfileLimitsResp[0].MaxPayout
-                                };
-                            }
-                            else
-                            {
-                                resp = new LimitsRightsVerificationResp()
+                                        Message = "Limits applied.",
+                                        Applied = false,
+                                        MaxWager = ProfileLimitsResp[0].MaxWager,
+                                        MinWager = ProfileLimitsResp[0].MinWager,
+                                        MaxPayout = ProfileLimitsResp[0].MaxPayout
+                                    };
+                                }
+                                else
                                 {
-                                    Code = 16,
-                                    Message = "Limits applied, master agent does not have limits.",
-                                    Applied = true,
-                                    MaxWager = 0,
-                                    MinWager = 0,
-                                    MaxPayout = 0
-                                };
+                                    resp = new LimitsRightsVerificationResp()
+                                    {
+                                        Code = 16,
+                                        Message = "Limits applied, master agent does not have limits.",
+                                        Applied = true,
+                                        MaxWager = 0,
+                                        MinWager = 0,
+                                        MaxPayout = 0
+                                    };
+                                }
                             }
                         }
-                    }
-                }
+                    
                 else
-                {
-                    resp = new LimitsRightsVerificationResp()
                     {
-                        Code = 51,
-                        Message = "AgentID does not exists or is Empty.",
-                        Applied = false,
-                        MaxWager = 0,
-                        MinWager = 0,
-                        MaxPayout = 0
-                    };
+                        resp = new LimitsRightsVerificationResp()
+                        {
+                            Code = 51,
+                            Message = "AgentID does not exists or is Empty.",
+                            Applied = false,
+                            MaxWager = 0,
+                            MinWager = 0,
+                            MaxPayout = 0
+                        };
+                    }
+
                 }
+                }
+                  
+           
+            
             }
             catch (Exception ex)
             {
@@ -401,7 +977,8 @@ namespace WolfApiCore.DbTier
         public List<GetAgentHierarchyResp> GetAgentHierarchy(GetAgentHierarchyReq req)
         {
             List<GetAgentHierarchyResp> AgentHierarchyRespList = null;
-            string sql = "select * from fn_SubAgentsOf(@IdAgent) order by AgentID ASC";
+            //string sql = "select 1 tipo,AgentID,Agent, Depth from fn_SubAgentsOf(@IdAgent) where Depth=0  union  select 2 tipo, AgentID,Agent, Depth from fn_SubAgentsOf(@IdAgent) where Depth<>0  order by 1 asc,2 ASC";
+            string sql = "select IdAgent as AgentID, Agent, AgentLevel as Depth from Ft_AgentTree_hierarchy(@IdAgent) order by Hierarchy asc";
             var values = new { req.IdAgent };
             try
             {
