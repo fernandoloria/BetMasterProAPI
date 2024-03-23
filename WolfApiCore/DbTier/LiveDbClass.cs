@@ -871,6 +871,7 @@ namespace WolfApiCore.DbTier
                             IsGameProp = line.IsGameProp,
                             IsMain = line.IsMain,
                             AllowMarketParlay = line.AllowMarketParlay,
+                            Explanation = line.Explanation,
                             Props = new List<LSport_EventPropDto>()
                         };
                         a.Props.Add(new LSport_EventPropDto
