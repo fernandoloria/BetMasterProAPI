@@ -401,7 +401,7 @@ namespace WolfApiCore.DbTier
                                 betslipItem.Price = Convert.ToDecimal(snapshotItem.Price);
                                 betslipItem.Line1 = snapshotItem.Line;
                                 betslipItem.BaseLine = snapshotItem.BaseLine;
-                                betslipItem.BsBetResult = -50;
+                                betslipItem.BsBetResult = -51;
                                 betslipItem.BsMessage = "Line Changed, please check the new value";
                             }
                         }
@@ -410,7 +410,7 @@ namespace WolfApiCore.DbTier
                     {
                         //linea cerrada
                         betslipItem.StatusForWager = 5; //linea cambio y player no acepta cambio de linea
-                        betslipItem.BsBetResult = -51;
+                        betslipItem.BsBetResult = -50;
                         betslipItem.BsMessage = "Line is closed";
                     }
 
