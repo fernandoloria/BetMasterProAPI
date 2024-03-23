@@ -17,10 +17,14 @@ namespace WolfApiCore.LSportApi
             public string Password { get; set; }
             public int FromDate { get; set; }
             public List<int> Fixtures { get; set; }
+            public List<int> Markets { get; set; }
         }
 
-        public FixtureApiDto CallLSportAPI(List<int> FixtureList, string PackageId,  string userName, string password)
+        public FixtureApiDto CallLSportAPI(List<CheckListLines> checkList, string packageId,  string userName, string password)
         {
+            List<int> fixtureList = checkList.Select(x => x.FixtureId).Distinct().ToList();
+            List<int> marketList = checkList.Select(x => x.MarketId).Distinct().ToList();
+
             FixtureApiDto resultValue = new FixtureApiDto();
             string ResponseString;
             HttpWebResponse response;
@@ -29,17 +33,14 @@ namespace WolfApiCore.LSportApi
 
 
                 string baseUrl = "https://stm-snapshot.lsports.eu/InPlay/GetEvents";
-
-
                 CallRequest requestObj = new CallRequest
                 {
                     UserName = userName, //"marvin.gl@gmail.com",
-                    PackageId = Convert.ToInt32(PackageId),
+                    PackageId = Convert.ToInt32(packageId),
                     Password = password, //"J83@d784cE",
-                    Fixtures = FixtureList
+                    Fixtures = fixtureList,
+                    Markets = marketList
                 };
-
-
 
                 var request = (HttpWebRequest)WebRequest.Create(baseUrl);
                 request.Accept = "application/json";
