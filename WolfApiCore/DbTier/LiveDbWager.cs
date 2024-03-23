@@ -49,7 +49,7 @@ namespace WolfApiCore.DbTier
                         if (lineChecked.BetId == Convert.ToInt64(propSelected.IdL1))
                         {
 
-                            var dbProp = validateProp(propSelected, lineChecked.BetInfo, Betslip.AcceptLineChange, Game.FixtureId, Betslip.IdPlayer);
+                            var dbProp = validateProp(propSelected, lineChecked.BetInfo, Betslip.AcceptLineChange, Game.FixtureId, Betslip.IdPlayer, propSelected.MarketId);
                             propSelected.Odds1 = dbProp.Odds1;
                             propSelected.IdL1 = dbProp.IdL1;
                             propSelected.BaseLine = dbProp.BaseLine;
@@ -152,16 +152,27 @@ namespace WolfApiCore.DbTier
                 foreach (var game in Betslip.Events)
                 {
 
-                    var TotalAmountValue = GetTotalValuePerGame(Betslip.IdPlayer, game.FixtureId) + Betslip.ParlayRiskAmount;
+                    //var TotalAmountValue = GetTotalValuePerGame(Betslip.IdPlayer, game.) + Betslip.ParlayRiskAmount;
 
-                    if (TotalAmountValue > TotAmtPerGame)
-                    {
-                        Betslip.ParlayBetResult = -50; 
-                        Betslip.ParlayMessage = $"{game.HomeTeam} vs {game.VisitorTeam} exceeds Max Risk per game. (Max = {TotAmtPerGame:F0})";
-                    }
+                    //if (TotalAmountValue > TotAmtPerGame)
+                    //{
+                    //    Betslip.ParlayBetResult = -50; 
+                    //    Betslip.ParlayMessage = $"{game.HomeTeam} vs {game.VisitorTeam} exceeds Max Risk per game. (Max = {TotAmtPerGame:F0})";
+                    //}
 
                     foreach (var propSelected in game.Selections)
                     {
+
+                        var TotalAmountValue = GetTotalValuePerGame(Betslip.IdPlayer, game.FixtureId, propSelected.MarketId) + Betslip.ParlayRiskAmount;
+
+                        if (TotalAmountValue > TotAmtPerGame)
+                        {
+                            Betslip.ParlayBetResult = -50;
+                            Betslip.ParlayMessage = $"{game.HomeTeam} vs {game.VisitorTeam} exceeds Max Risk per game. (Max = {TotAmtPerGame:F0})";
+                        }
+
+
+
                         if (propSelected.Odds1 < MinPriceAmount)
                         {
                             Betslip.ParlayBetResult = -50;
@@ -312,7 +323,7 @@ namespace WolfApiCore.DbTier
             return win;
         }
 
-        public LSport_EventPropDto validateProp(LSport_EventPropDto originalProp, Bet LSportBetLine,  bool acceptLineChanged, int fixtureId, int idplayer)
+        public LSport_EventPropDto validateProp(LSport_EventPropDto originalProp, Bet LSportBetLine,  bool acceptLineChanged, int fixtureId, int idplayer, int idMarket)
         {
             try
             {
@@ -335,7 +346,7 @@ namespace WolfApiCore.DbTier
                 var PlayerLimitsStraight = GetPlayerLimitsStraight(idplayer, fixtureId);
                 var AgentLimitsStraight = GetAgentLimitsStraight(idplayer, fixtureId);
 
-                var TotalAmountValue = GetTotalValuePerGame(idplayer, fixtureId) + originalProp.BsRiskAmount;
+                var TotalAmountValue = GetTotalValuePerGame(idplayer, fixtureId, idMarket) + originalProp.BsRiskAmount;
 
                 if (PlayerLimitsStraight != null)
                 {
@@ -626,13 +637,13 @@ namespace WolfApiCore.DbTier
 
 
 
-        private int GetTotalValuePerGame(int PlayerId, int FixtureId)
+        private int GetTotalValuePerGame(int PlayerId, int FixtureId, int Marketid)
         {
             var limits = 0;
             try
             {
                 using var connection = new SqlConnection(moverConnString);
-                limits = connection.Query<int>(@"SELECT [dbo].[fn_TotalAmountPlayed] (@PlayerId,@FixtureId)", new { PlayerId, FixtureId }).FirstOrDefault();
+                limits = connection.Query<int>(@"SELECT [dbo].[fn_TotalAmountPlayedByGameMarket] (@PlayerId,@FixtureId , @Marketid)", new { PlayerId, FixtureId, Marketid }).FirstOrDefault();
             }
             catch (Exception ex)
             {
@@ -684,9 +695,9 @@ namespace WolfApiCore.DbTier
                     resp.MaxWager = oLimitsSport.MaxWager;
                     resp.MaxPayout = oLimitsSport.MaxPayout;
 
-                    resp.MinWager = oLimitsSport.MinWager;
-                    resp.MaxWager = oLimitsSport.MaxWager;
-                    resp.MaxPayout = oLimitsSport.MaxPayout;
+                    resp.MinPrice = oLimitsSport.MinPrice;
+                    resp.MaxPrice = oLimitsSport.MaxPrice;
+                    resp.TotAmtGame = oLimitsSport.TotAmtGame;
                 }
                 else
                 {
@@ -703,9 +714,9 @@ namespace WolfApiCore.DbTier
                         resp.MaxWager = oLimitsLeague.MaxWager;
                         resp.MaxPayout = oLimitsLeague.MaxPayout;
 
-                        resp.MinWager = oLimitsLeague.MinWager;
-                        resp.MaxWager = oLimitsLeague.MaxWager;
-                        resp.MaxPayout = oLimitsLeague.MaxPayout;
+                        resp.MinPrice = oLimitsLeague.MinPrice;
+                        resp.MaxPrice = oLimitsLeague.MaxPrice;
+                        resp.TotAmtGame = oLimitsLeague.TotAmtGame;
                     }
                 }
 
@@ -730,9 +741,9 @@ namespace WolfApiCore.DbTier
                         resp.MaxWager = oLimitsSportMaster.MaxWager;
                         resp.MaxPayout = oLimitsSportMaster.MaxPayout;
 
-                        resp.MinWager = oLimitsSportMaster.MinWager;
-                        resp.MaxWager = oLimitsSportMaster.MaxWager;
-                        resp.MaxPayout = oLimitsSportMaster.MaxPayout;
+                        resp.MinPrice = oLimitsSportMaster.MinPrice;
+                        resp.MaxPrice = oLimitsSportMaster.MaxPrice;
+                        resp.TotAmtGame = oLimitsSportMaster.TotAmtGame;
                     }
                     else
                     {
@@ -750,9 +761,9 @@ namespace WolfApiCore.DbTier
                             resp.MaxPayout = oLimitsLeagueMaster.MaxPayout;
 
 
-                            resp.MinWager = oLimitsLeagueMaster.MinWager;
-                            resp.MaxWager = oLimitsLeagueMaster.MaxWager;
-                            resp.MaxPayout = oLimitsLeagueMaster.MaxPayout;
+                            resp.MinPrice = oLimitsLeagueMaster.MinPrice;
+                            resp.MaxPrice = oLimitsLeagueMaster.MaxPrice;
+                            resp.TotAmtGame = oLimitsLeagueMaster.TotAmtGame;
                         }
                         else
                         {

@@ -1131,7 +1131,7 @@ namespace WolfApiCore.DbTier
         public ProfileLimitsByPlayerResp GetProfileLimitsByIdPlayer(ProfileLimitsByPlayerReq req)
         {
             ProfileLimitsByPlayerResp ProfileLimitsResp = null;
-            string sql = "exec sp_MGL_GetProfileLimitsByPlayer @PlayerId, @IdWagerType, @SportId, @LeagueId, @FixtureId";
+            string sql = "exec sp_MGL_GetProfileLimitsByPlayerAgents @PlayerId, @IdWagerType, @SportId, @LeagueId, @FixtureId";
 
             try
             {
@@ -1150,7 +1150,7 @@ namespace WolfApiCore.DbTier
         public List<ProfileLimitsByPlayerResp> GetProfileLimitsByPlayer(List<ProfileLimitsByPlayerReq> req)
         {
             List<ProfileLimitsByPlayerResp> ProfileLimitsResp = new List<ProfileLimitsByPlayerResp>();
-            string sql = "exec sp_MGL_GetProfileLimitsByPlayer @PlayerId, @IdWagerType, @SportId, @LeagueId, @FixtureId";
+            string sql = "exec sp_MGL_GetProfileLimitsByPlayerAgents @PlayerId, @IdWagerType, @SportId, @LeagueId, @FixtureId";
 
             try
             {
