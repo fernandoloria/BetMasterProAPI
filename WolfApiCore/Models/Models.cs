@@ -161,6 +161,7 @@ namespace WolfApiCore.Models
         public bool? IsPlayerProp { get; set; }
         public bool? IsTnt { get; set; }
         public bool? AllowMarketParlay { get; set; }
+        public string? Explanation { get; set; }
         public List<LSport_EventPropDto> Props { get; set; }
     }
 
@@ -276,6 +277,7 @@ namespace WolfApiCore.Models
         public bool? IsPlayerProp { get; set; }
         public bool? IsTnt { get; set; }
         public bool? AllowMarketParlay { get; }
+        public string? Explanation { get; set; }
     }
 
     public class DgsCredentials
