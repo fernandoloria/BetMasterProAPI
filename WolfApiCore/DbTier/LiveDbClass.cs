@@ -1171,6 +1171,22 @@ namespace WolfApiCore.DbTier
             return resp;
         }
 
+        public void WriteSignalRUpdaterIP(string ipAddress)
+        {
+            try
+            {
+                string sql = "exec sp_MGL_SignalRLog @ip";
+                var values = new { ip = ipAddress };
+                using var connection = new SqlConnection(connString);
+                connection.Execute(sql, values);
+            }
+            catch (Exception ex)
+            {
+                _ = ex.Message;
+            }
+            //return oGame;
+        }
+
         private bool HasLocationNameException(string locationName)
         {
             string[] locationNameExceptions = { "United States" };        
