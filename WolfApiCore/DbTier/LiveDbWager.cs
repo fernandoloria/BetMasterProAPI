@@ -402,7 +402,7 @@ namespace WolfApiCore.DbTier
                                 betslipItem.Line1 = snapshotItem.Line;
                                 betslipItem.BaseLine = snapshotItem.BaseLine;
                                 betslipItem.BsBetResult = -51;
-                                betslipItem.BsMessage = "Line Changed, please check the new value";
+                                betslipItem.BsMessage = "Line Change Detected.";
                             }
                         }
                     }
