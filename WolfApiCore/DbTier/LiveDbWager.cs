@@ -276,7 +276,7 @@ namespace WolfApiCore.DbTier
             {
                 var betAmount = GetBetAmount(betslipItem);
                 var limits = GetPlayerLimits(idplayer);
-                var minRiskAmount = (decimal)10;//500   **estos son los oldsvalues**
+                var minBetAmount = (decimal)10;//500   **estos son los oldsvalues**
                 var maxRiskAmount = (decimal)1000;//100
                 var maxWinAmount = (decimal)2000;//100
                 var minPriceAmount = (decimal)-1000;
@@ -288,7 +288,7 @@ namespace WolfApiCore.DbTier
 
                 if (playerLimitsStraight != null)
                 {
-                    minRiskAmount = playerLimitsStraight.MinWager;
+                    minBetAmount = playerLimitsStraight.MinWager;
                     maxRiskAmount = playerLimitsStraight.MaxWager;
                     maxWinAmount = playerLimitsStraight.MaxPayout;
                     minPriceAmount = playerLimitsStraight.MinPrice;
@@ -297,7 +297,7 @@ namespace WolfApiCore.DbTier
                 }
                 else if (agentLimitsStraight != null)
                 {
-                    minRiskAmount = agentLimitsStraight.MinWager;
+                    minBetAmount = agentLimitsStraight.MinWager;
                     maxRiskAmount = agentLimitsStraight.MaxWager;
                     maxWinAmount = agentLimitsStraight.MaxPayout;
                     minPriceAmount = agentLimitsStraight.MinPrice;
@@ -367,15 +367,15 @@ namespace WolfApiCore.DbTier
                         {
                             betslipItem.StatusForWager = 5;
                             betslipItem.BsBetResult = -50;
-                            betslipItem.BsMessage = $"Ticket exceeds Max Risk per game. (Max = {totAmtPerGame:F0})";
+                            betslipItem.BsMessage = $"Ticket exceeds Max Bet Amount per game. (Max = {totAmtPerGame:F0})";
                         }
-                        else if (betslipItem.BsRiskAmount < minRiskAmount)
+                        else if (betAmount < minBetAmount)
                         {
                             betslipItem.StatusForWager = 5; 
                             betslipItem.BsBetResult = -50;
-                            betslipItem.BsMessage = $"Less than Min Risk amount. (Min = {minRiskAmount:F0})";
+                            betslipItem.BsMessage = $"Less than Min Bet Amount. (Min = {minBetAmount:F0})";
                         }
-                        //Remarks: 03/24/2024 Donovan requested to Check Min and BetAmount only
+                        //Remarks: 03/24/2024 Donovan requested to Check Min a
                         //else if (betslipItem.BsRiskAmount > maxRiskAmount)
                         //{
                         //    betslipItem.StatusForWager = 5; 
