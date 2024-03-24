@@ -1,8 +1,6 @@
-﻿using System.Net;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using WolfApiCore.DbTier;
-using WolfApiCore.LSportApi;
 using WolfApiCore.Models;
 using WolfApiCore.Utilities;
 
@@ -12,7 +10,6 @@ namespace WolfApiCore.Controllers
     [ApiController]
     public class LinesController : ControllerBase
     {
-
         private readonly IConfiguration _configuration;
         private readonly Base64Service _base64Service;
 
@@ -22,26 +19,19 @@ namespace WolfApiCore.Controllers
             _base64Service = base64Service;
         }
 
-
-
         [HttpPost("GetLastBetHours")]
         public RespPlayerLastBet GetLastBetHours(ReqPlayerLastBet idplayer)
         {
             return new LiveDbWager().GetLastBetHours(idplayer.idPlayer);
         }
 
-
-
-
         [HttpGet("GetGamesAndLines/{idplayer}")]
         public List<LSport_ScreenSportsDto> GetGamesAndLines(int idPlayer)
         {
             var connString = _configuration.GetValue<string>("SrvSettings:DbConnMover");
-
             var resultData = new LiveDbClass(connString).GetGamesAndLines(idPlayer);
             return resultData;
         }
-
 
         [HttpPost("CreateWager")]
         public LSport_BetSlipObj CreateWager(LSport_BetSlipObj Betslip)
