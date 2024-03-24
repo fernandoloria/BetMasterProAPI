@@ -309,8 +309,7 @@ namespace WolfApiCore.DbTier
                 {
                     if (snapshotItem != null && snapshotItem.Status == 1 /*Line Open*/)
                     {
-                        if (int.Parse(snapshotItem.PriceUS) == betslipItem.Odds1 &&
-                            betslipItem.Line1 == snapshotItem.Line)
+                        if (int.Parse(snapshotItem.PriceUS) == betslipItem.Odds1)
                         {
                             betslipItem.StatusForWager = 10;  //ready for wager
                         }
