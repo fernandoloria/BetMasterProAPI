@@ -321,6 +321,7 @@ namespace WolfApiCore.DbTier
                     var teams = GetParticipants(game.FixtureId);
                     if (teams != null)
                     {
+
                         game.HomeTeam = teams.Where(x => x.Position == 1).FirstOrDefault()?.Name;
                         game.HomeTeamId = teams.Where(x => x.Position == 1).FirstOrDefault() != null
                             ? Convert.ToInt32(teams.Where(x => x.Position == 1).FirstOrDefault().ParticipantId)
