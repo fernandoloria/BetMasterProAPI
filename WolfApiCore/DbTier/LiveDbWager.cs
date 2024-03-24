@@ -265,10 +265,16 @@ namespace WolfApiCore.DbTier
             return win;
         }
 
+        private decimal GetBetAmount(LSport_EventPropDto betslipItem)
+        {
+            return Math.Min(betslipItem.BsRiskAmount.Value, betslipItem.BsWinAmount.Value);
+        }
+
         public LSport_EventPropDto ValidateProp(LSport_EventPropDto betslipItem, Bet snapshotItem,  bool acceptLineChanged, int fixtureId, int idplayer, int idMarket)
         {
             try
             {
+                var betAmount = GetBetAmount(betslipItem);
                 var limits = GetPlayerLimits(idplayer);
                 var minRiskAmount = (decimal)10;//500   **estos son los oldsvalues**
                 var maxRiskAmount = (decimal)1000;//100
@@ -278,7 +284,7 @@ namespace WolfApiCore.DbTier
                 var totAmtPerGame = (decimal)500;
                 var playerLimitsStraight = GetPlayerLimitsStraight(idplayer, fixtureId);
                 var agentLimitsStraight = GetAgentLimitsStraight(idplayer, fixtureId);
-                var totalAmountValue = GetTotalValuePerGame(idplayer, fixtureId, idMarket) + betslipItem.BsRiskAmount;
+                var totalAmountValue = GetTotalValuePerGame(idplayer, fixtureId, idMarket) + betAmount;
 
                 if (playerLimitsStraight != null)
                 {
@@ -357,32 +363,31 @@ namespace WolfApiCore.DbTier
                             betslipItem.BsBetResult = -50;
                             betslipItem.BsMessage = $"Ticket exceeds Max Price. (Max = {maxPriceAmount:F0})";
                         }
-
                         else if (totalAmountValue > totAmtPerGame)
                         {
                             betslipItem.StatusForWager = 5;
                             betslipItem.BsBetResult = -50;
                             betslipItem.BsMessage = $"Ticket exceeds Max Risk per game. (Max = {totAmtPerGame:F0})";
                         }
-
                         else if (betslipItem.BsRiskAmount < minRiskAmount)
                         {
                             betslipItem.StatusForWager = 5; 
                             betslipItem.BsBetResult = -50;
                             betslipItem.BsMessage = $"Less than Min Risk amount. (Min = {minRiskAmount:F0})";
                         }
-                        else if (betslipItem.BsRiskAmount > maxRiskAmount)
-                        {
-                            betslipItem.StatusForWager = 5; 
-                            betslipItem.BsBetResult = -50;
-                            betslipItem.BsMessage = $"Exceeded Max Risk amount. (Max = {maxRiskAmount:F0})";
-                        }
-                        else if (betslipItem.BsWinAmount > maxWinAmount)
-                        {
-                            betslipItem.StatusForWager = 5; 
-                            betslipItem.BsBetResult = -50;
-                            betslipItem.BsMessage = $"Exceeded Max Win amount. (Max = {maxWinAmount:F0})";
-                        }                        
+                        //Remarks: 03/24/2024 Donovan requested to Check Min and BetAmount only
+                        //else if (betslipItem.BsRiskAmount > maxRiskAmount)
+                        //{
+                        //    betslipItem.StatusForWager = 5; 
+                        //    betslipItem.BsBetResult = -50;
+                        //    betslipItem.BsMessage = $"Exceeded Max Risk amount. (Max = {maxRiskAmount:F0})";
+                        //}
+                        //else if (betslipItem.BsWinAmount > maxWinAmount)
+                        //{
+                        //    betslipItem.StatusForWager = 5; 
+                        //    betslipItem.BsBetResult = -50;
+                        //    betslipItem.BsMessage = $"Exceeded Max Win amount. (Max = {maxWinAmount:F0})";
+                        //}                        
                     }
                 }
 
