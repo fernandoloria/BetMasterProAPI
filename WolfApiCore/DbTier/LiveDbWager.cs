@@ -315,7 +315,8 @@ namespace WolfApiCore.DbTier
                 {
                     if (snapshotItem != null && snapshotItem.Status == 1 /*Line Open*/)
                     {
-                        if (int.Parse(snapshotItem.PriceUS) == betslipItem.Odds1)
+                        if (int.Parse(snapshotItem.PriceUS) == betslipItem.Odds1 &&
+                            snapshotItem.Line == betslipItem.Line1)
                         {
                             betslipItem.StatusForWager = 10;  //ready for wager
                         }
@@ -1849,6 +1850,15 @@ namespace WolfApiCore.DbTier
                                     if (betMarket != null && betMarket.Bets != null && betMarket.Bets.Count() > 0)
                                     {
                                         item.BetInfo = betMarket.Bets.FirstOrDefault(x => x.Id.ToString() == item.BetId.ToString());
+                                        if (null != item.BetInfo && item.BetInfo.Status != 1)
+                                        {
+                                            var altList = betMarket.Bets.Where(x => x.Name == item.BetInfo.Name && x.Status == 1);
+                                            if (null != altList && altList.Count() == 1)
+                                            {
+                                                item.BetInfo = altList.FirstOrDefault();
+                                                item.BetInfo.AlternateId = item.BetId;
+                                            }
+                                        }
                                     }
                                 }
                             }

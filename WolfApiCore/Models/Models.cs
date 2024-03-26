@@ -569,6 +569,7 @@ namespace WolfApiCore.Models
         public string BaseLine { get; set; }
         public long ParticipantId { set; get; }
         public string ProviderBetId { get; set; }
+        public object AlternateId { get; set; }
     }
 
     public class OutrightLeague
