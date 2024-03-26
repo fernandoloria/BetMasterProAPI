@@ -339,6 +339,7 @@ namespace WolfApiCore.DbTier
                                 betslipItem.BaseLine = snapshotItem.BaseLine;
                                 betslipItem.BsBetResult = -51;
                                 betslipItem.BsMessage = "Line Change Detected.";
+                                betslipItem.IdL2 = (null != snapshotItem.AlternateId) ? snapshotItem.AlternateId.ToString() : "";
                             }
                         }
                     }
