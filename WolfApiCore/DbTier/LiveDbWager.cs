@@ -345,7 +345,7 @@ namespace WolfApiCore.DbTier
                     {
                         //linea cerrada
                         betslipItem.StatusForWager = 5; //linea cambio y player no acepta cambio de linea
-                        betslipItem.BsBetResult = -50;
+                        betslipItem.BsBetResult = -52;
                         betslipItem.BsMessage = "Line closed";
                     }
 
