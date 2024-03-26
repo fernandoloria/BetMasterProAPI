@@ -1187,6 +1187,8 @@ namespace WolfApiCore.DbTier
                                 MaxPrice = oLimit.MaxPrice,
                                 TotAmtGame = oLimit.TotAmtGame,
 
+                                Type= ProfileLimitsRespAUX[0].Type,
+
 
                                 ModifiedAt = DateTime.Now
                             };

@@ -239,6 +239,7 @@
             public decimal MinPrice { get; set; }
             public decimal MaxPrice { get; set; }
             public decimal TotAmtGame { get; set; }
+            public string? Type { get; set; }
 
             public DateTime ModifiedAt { get; set; }
         }
