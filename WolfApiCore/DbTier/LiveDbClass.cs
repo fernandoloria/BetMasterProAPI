@@ -321,6 +321,7 @@ namespace WolfApiCore.DbTier
                     var teams = GetParticipants(game.FixtureId);
                     if (teams != null)
                     {
+
                         game.HomeTeam = teams.Where(x => x.Position == 1).FirstOrDefault()?.Name;
                         game.HomeTeamId = teams.Where(x => x.Position == 1).FirstOrDefault() != null
                             ? Convert.ToInt32(teams.Where(x => x.Position == 1).FirstOrDefault().ParticipantId)
@@ -1169,6 +1170,22 @@ namespace WolfApiCore.DbTier
                 _ = ex.Message;
             }
             return resp;
+        }
+
+        public void WriteSignalRUpdaterIP(string ipAddress)
+        {
+            try
+            {
+                string sql = "exec sp_MGL_SignalRLog @ip";
+                var values = new { ip = ipAddress };
+                using var connection = new SqlConnection(connString);
+                connection.Execute(sql, values);
+            }
+            catch (Exception ex)
+            {
+                _ = ex.Message;
+            }
+            //return oGame;
         }
 
         private bool HasLocationNameException(string locationName)

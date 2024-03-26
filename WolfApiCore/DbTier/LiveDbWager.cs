@@ -1,10 +1,7 @@
 ﻿using Dapper;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
-using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.Data;
-using System.Text.RegularExpressions;
 using WolfApiCore.LSportApi;
 using WolfApiCore.Models;
 using static WolfApiCore.Models.AdminModels;
@@ -29,25 +26,23 @@ namespace WolfApiCore.DbTier
             var cl = new List<CheckListLines>();
 
             //validamos todos
-            foreach (var Game in betslip.Events)
+            foreach (var fixture in betslip.Events)
             {
-                foreach (var propSelected in Game.Selections)
+                foreach (var selection in fixture.Selections)
                 {
-                    cl.Add(new CheckListLines { FixtureId = Game.FixtureId, MarketId = propSelected.MarketId, BetId = Convert.ToInt64(propSelected.IdL1) });
+                    cl.Add(new CheckListLines { FixtureId = fixture.FixtureId, MarketId = selection.MarketId, BetId = Convert.ToInt64(selection.IdL1) });
                 }
             }
 
-            var linesChecked = GetLSportsBetsInfo(cl);
-
-
-            foreach (var Game in betslip.Events)
+            var lsportSnapshot = GetLSportsBetsInfo(cl);
+            foreach (var fixture in betslip.Events)
             {
-                foreach (var propSelected in Game.Selections)
+                foreach (var propSelected in fixture.Selections)
                 {
-                    var snapshotItem = linesChecked.FirstOrDefault(s=>s.BetId == Convert.ToInt64(propSelected.IdL1));
-                    if(null != snapshotItem)
+                    var snapshotItem = lsportSnapshot.FirstOrDefault(s => s.BetId == Convert.ToInt64(propSelected.IdL1));
+                    if (null != snapshotItem)
                     {
-                        var dbProp = ValidateProp(propSelected, snapshotItem.BetInfo, betslip.AcceptLineChange, Game.FixtureId, betslip.IdPlayer, propSelected.MarketId);
+                        var dbProp = ValidateProp(propSelected, snapshotItem.BetInfo, betslip.AcceptLineChange, fixture.FixtureId, betslip.IdPlayer, propSelected.MarketId);
                         propSelected.Odds1 = dbProp.Odds1;
                         propSelected.Price = dbProp.Price;
                         propSelected.Line1 = dbProp.Line1;
@@ -63,161 +58,114 @@ namespace WolfApiCore.DbTier
 
 
             //INSERT STRAIGHTS
-            foreach (var game in betslip.Events)
+            foreach (var fixture in betslip.Events)
             {
-                foreach (var propSelected in game.Selections)
+                foreach (var selection in fixture.Selections)
                 {
-                    if (propSelected.BsWinAmount != null)
+                    if (selection.BsWinAmount != null)
                     {
-                        if (propSelected.BsWinAmount > 0)
+                        if (selection.BsWinAmount > 0)
                         {
-                            if ((int)propSelected.BsRiskAmount >= 0 && propSelected.StatusForWager is 10 or 9)
+                            if ((int)selection.BsRiskAmount >= 0 && (selection.StatusForWager is 10 or 9))
                             {
-                                CreateStraightWagerModel createStraightWagerModel = new CreateStraightWagerModel {
-                                    PropSelected = propSelected,
-                                    FixtureId = game.FixtureId,
+                                CreateStraightWagerModel createStraightWagerModel = new CreateStraightWagerModel
+                                {
+                                    PropSelected = selection,
+                                    FixtureId = fixture.FixtureId,
                                     IdPlayer = betslip.IdPlayer,
-                                    HomeTeam = game.HomeTeam,
-                                    VisitorTeam = game.VisitorTeam,
-                                    SportName = game.SportName,
+                                    HomeTeam = fixture.HomeTeam,
+                                    VisitorTeam = fixture.VisitorTeam,
+                                    SportName = fixture.SportName,
                                     IsMobile = betslip.IsMobile,
-                                    LeagueName = game.LeagueName,
-                                    IsTournament = game.IsTournament
+                                    LeagueName = fixture.LeagueName,
+                                    IsTournament = fixture.IsTournament
                                 };
 
                                 var betResult = CreateStraightWager(createStraightWagerModel);
-
-                                propSelected.StatusForWager = betResult.StatusForWager;
-                                propSelected.BsBetResult = betResult.BsBetResult;
-                                propSelected.BsTicketNumber = betResult.BsTicketNumber;
-
+                                selection.StatusForWager = betResult.StatusForWager;
+                                selection.BsBetResult = betResult.BsBetResult;
+                                selection.BsTicketNumber = betResult.BsTicketNumber;
                             }
                         }
                     }
                 }
             }
 
+            var minRiskAmount = (decimal)5;
+            var maxRiskAmount = (decimal)1000;
+            var maxWinAmount = (decimal)2000;
+            var minPriceAmount = (decimal)-1000;
+            var maxPriceAmount = (decimal)1000;
+            var totAmtPerGame = (decimal)500;
+            var playerLimitsParlay = GetPlayerLimitsParlay(betslip.IdPlayer);
+            var agentLimitsParlay = GetAgentLimitsParlay(betslip.IdPlayer);
 
-
-            var MinRiskAmount = (decimal)5;
-            var MaxRiskAmount = (decimal)1000;
-            var MaxWinAmount = (decimal)2000;
-
-            var MinPriceAmount = (decimal)-1000;
-            var MaxPriceAmount = (decimal)1000;
-            var TotAmtPerGame = (decimal)500;
-
-
-            //var MinRiskAmount = _appConfig.MinRiskAmount;
-            //var MaxRiskAmount = _appConfig.MaxRiskAmount;
-            //var MaxWinAmount = _appConfig.MaxWinAmount;
-
-
-
-
-            var PlayerLimitsParlay = GetPlayerLimitsParlay(betslip.IdPlayer);
-            var AgentLimitsParlay = GetAgentLimitsParlay(betslip.IdPlayer);
-
-
-
-            if (PlayerLimitsParlay != null)
+            if (playerLimitsParlay != null)
             {
-                MinRiskAmount = PlayerLimitsParlay.MinWager;
-                MaxRiskAmount = PlayerLimitsParlay.MaxWager;
-                MaxWinAmount = PlayerLimitsParlay.MaxPayout;
-
-                MinPriceAmount = PlayerLimitsParlay.MinPrice;
-                MaxPriceAmount = PlayerLimitsParlay.MaxPrice;
-                TotAmtPerGame = PlayerLimitsParlay.TotAmtGame;
+                minRiskAmount = playerLimitsParlay.MinWager;
+                maxRiskAmount = playerLimitsParlay.MaxWager;
+                maxWinAmount = playerLimitsParlay.MaxPayout;
+                minPriceAmount = playerLimitsParlay.MinPrice;
+                maxPriceAmount = playerLimitsParlay.MaxPrice;
+                totAmtPerGame = playerLimitsParlay.TotAmtGame;
             }
-            else if (AgentLimitsParlay != null)
+            else if (agentLimitsParlay != null)
             {
-                MinRiskAmount = AgentLimitsParlay.MinWager;
-                MaxRiskAmount = AgentLimitsParlay.MaxWager;
-                MaxWinAmount = AgentLimitsParlay.MaxPayout;
-
-                MinPriceAmount = AgentLimitsParlay.MinPrice;
-                MaxPriceAmount = AgentLimitsParlay.MaxPrice;
-                TotAmtPerGame = AgentLimitsParlay.TotAmtGame;
+                minRiskAmount = agentLimitsParlay.MinWager;
+                maxRiskAmount = agentLimitsParlay.MaxWager;
+                maxWinAmount = agentLimitsParlay.MaxPayout;
+                minPriceAmount = agentLimitsParlay.MinPrice;
+                maxPriceAmount = agentLimitsParlay.MaxPrice;
+                totAmtPerGame = agentLimitsParlay.TotAmtGame;
             }
 
-
-
-            if (validForParlay && betslip.ParlayRiskAmount > 0 && betslip.ParlayRiskAmount >= MinRiskAmount)
+            if (validForParlay && betslip.ParlayRiskAmount > 0 && betslip.ParlayRiskAmount >= minRiskAmount)
             {
-
-                //var dailyTotal = GetTodayWinAmount(Betslip.IdPlayer);
-
-                foreach (var game in betslip.Events)
+                foreach (var fixture in betslip.Events)
                 {
-
-                    //var TotalAmountValue = GetTotalValuePerGame(Betslip.IdPlayer, game.) + Betslip.ParlayRiskAmount;
-
-                    //if (TotalAmountValue > TotAmtPerGame)
-                    //{
-                    //    Betslip.ParlayBetResult = -50; 
-                    //    Betslip.ParlayMessage = $"{game.HomeTeam} vs {game.VisitorTeam} exceeds Max Risk per game. (Max = {TotAmtPerGame:F0})";
-                    //}
-
-                    foreach (var propSelected in game.Selections)
+                    foreach (var selection in fixture.Selections)
                     {
-
-                        var TotalAmountValue = GetTotalValuePerGame(betslip.IdPlayer, game.FixtureId, propSelected.MarketId) + betslip.ParlayRiskAmount;
-
-                        if (TotalAmountValue > TotAmtPerGame)
+                        var totalAmountValue = GetTotalValuePerGame(betslip.IdPlayer, fixture.FixtureId, selection.MarketId) + betslip.ParlayRiskAmount;
+                        if (totalAmountValue > totAmtPerGame)
                         {
                             betslip.ParlayBetResult = -50;
-                            betslip.ParlayMessage = $"{game.HomeTeam} vs {game.VisitorTeam} exceeds Max Risk per game. (Max = {TotAmtPerGame:F0})";
+                            betslip.ParlayMessage = $"{fixture.HomeTeam} vs {fixture.VisitorTeam} exceeds Max Risk per game. (Max = {totAmtPerGame:F0})";
+                            continue;
                         }
 
-
-
-                        if (propSelected.Odds1 < MinPriceAmount)
+                        if (selection.Odds1 < minPriceAmount)
                         {
                             betslip.ParlayBetResult = -50;
-                            betslip.ParlayMessage = $"Price for {propSelected.Name} exceeds Min Price. (Min = {MinPriceAmount:F0})";
+                            betslip.ParlayMessage = $"Price for {selection.Name} exceeds Min Price. (Min = {minPriceAmount:F0})";
                         }
-
-                        else if (propSelected.Odds1 > MaxPriceAmount)
+                        else if (selection.Odds1 > maxPriceAmount)
                         {
                             betslip.ParlayBetResult = -50;
-                            betslip.ParlayMessage = $"Price for {propSelected.Name} exceeds Max Price. (Max = {MaxPriceAmount:F0})";
+                            betslip.ParlayMessage = $"Price for {selection.Name} exceeds Max Price. (Max = {maxPriceAmount:F0})";
                         }
                     }
                 }
 
 
-                if (betslip.ParlayRiskAmount > MaxRiskAmount)
+                if (betslip.ParlayRiskAmount > maxRiskAmount)
                 {
                     betslip.ParlayBetResult = -50;
-                    betslip.ParlayMessage = $"Parlay exceeds Max Risk amount. (Max ={MaxRiskAmount:F0})";
+                    betslip.ParlayMessage = $"Parlay exceeds Max Risk amount. (Max ={maxRiskAmount:F0})";
                 }
-                else if (betslip.ParlayWinAmount > MaxWinAmount)
+                else if (betslip.ParlayWinAmount > maxWinAmount)
                 {
                     betslip.ParlayBetResult = -50;
-                    betslip.ParlayMessage = $"Parlay exceeds Max Win amount. (Max = {MaxWinAmount:F0})";
+                    betslip.ParlayMessage = $"Parlay exceeds Max Win amount. (Max = {maxWinAmount:F0})";
                 }
                 else
                 {
-                    //if (dailyTotal?.WinAmount >= 1500)
-                    //{
-                    //    Betslip.ParlayBetResult = -50;
-                    //    Betslip.ParlayMessage = $"Ticket exceeds your Daily Total Win amount. { 1500 }";
-                    //}
-                    //else if (dailyTotal?.RiskAmount >= 11000)
-                    //{
-                    //    Betslip.ParlayBetResult = -50;
-                    //    Betslip.ParlayMessage = $"Ticket exceeds your Daily Total Risk amount. {}";
-                    //}
-                        
-                    //else {
-                        var obj = CreateParlayWager(betslip);
-                        betslip.ParlayBetResult = obj.ParlayBetResult;
-                        betslip.ParlayBetTicket = obj.ParlayBetTicket;
-                  //  }
+                    var obj = CreateParlayWager(betslip);
+                    betslip.ParlayBetResult = obj.ParlayBetResult;
+                    betslip.ParlayBetTicket = obj.ParlayBetTicket;
                 }
             }
-            else if (validForParlay) {
+            else if (validForParlay)
+            {
                 betslip.ParlayBetResult = -50;
                 betslip.ParlayMessage = "";
             }
@@ -226,17 +174,15 @@ namespace WolfApiCore.DbTier
                 betslip.ParlayBetResult = -60;
                 betslip.ParlayMessage = "";
             }
+
             return betslip;
         }
 
         public decimal ParlayCalculateWin(LSport_BetSlipObj Betslip)
         {
             float factor = GeParlayFactor(Betslip);
-
             return Convert.ToDecimal((decimal)factor * Betslip.ParlayRiskAmount) - Betslip.ParlayRiskAmount;
         }
-
-
 
         public RespPlayerLastBet GetLastBetHours(int PlayerId)
         {
@@ -269,18 +215,17 @@ namespace WolfApiCore.DbTier
         }
 
 
-        public float GeParlayFactor(LSport_BetSlipObj Betslip)
+        public float GeParlayFactor(LSport_BetSlipObj betslip)
         {
             float factor = 1;
 
             try
             {
-                foreach (var game in Betslip.Events)
+                foreach (var fixture in betslip.Events)
                 {
-                    foreach (var sel in game.Selections)
+                    foreach (var selection in fixture.Selections)
                     {
-                        float originalOdd = (float)sel.Odds1;
-
+                        float originalOdd = (float)selection.Odds1;
                         if (originalOdd > 0)
                             factor *= ((originalOdd / 100) + 1);
                         else
@@ -290,10 +235,8 @@ namespace WolfApiCore.DbTier
             }
             catch (Exception)
             {
-
                 throw;
             }
-
 
             return factor;
         }
@@ -322,51 +265,44 @@ namespace WolfApiCore.DbTier
             return win;
         }
 
+        private decimal GetBetAmount(LSport_EventPropDto betslipItem)
+        {
+            return Math.Min(betslipItem.BsRiskAmount.Value, betslipItem.BsWinAmount.Value);
+        }
+
         public LSport_EventPropDto ValidateProp(LSport_EventPropDto betslipItem, Bet snapshotItem,  bool acceptLineChanged, int fixtureId, int idplayer, int idMarket)
         {
             try
             {
+                var betAmount = GetBetAmount(betslipItem);
                 var limits = GetPlayerLimits(idplayer);
-                var MinRiskAmount = (decimal)10;//500   **estos son los oldsvalues**
-                var MaxRiskAmount = (decimal)1000;//100
-                var MaxWinAmount = (decimal)2000;//100
+                var minBetAmount = (decimal)10;//500   **estos son los oldsvalues**
+                var maxRiskAmount = (decimal)1000;//100
+                var maxWinAmount = (decimal)2000;//100
+                var minPriceAmount = (decimal)-1000;
+                var maxPriceAmount = (decimal)1000;
+                var totAmtPerGame = (decimal)500;
+                var playerLimitsStraight = GetPlayerLimitsStraight(idplayer, fixtureId);
+                var agentLimitsStraight = GetAgentLimitsStraight(idplayer, fixtureId);
+                var totalAmountValue = GetTotalValuePerGame(idplayer, fixtureId, idMarket) + betAmount;
 
-
-
-                var MinPriceAmount = (decimal)-1000;
-                var MaxPriceAmount = (decimal)1000;
-                var TotAmtPerGame = (decimal)500;
-
-                //var MinRiskAmount = _appConfig.MinRiskAmount; 
-                //var MaxRiskAmount = _appConfig.MaxRiskAmount;
-                //var MaxWinAmount = _appConfig.MaxWinAmount;
-
-
-                var PlayerLimitsStraight = GetPlayerLimitsStraight(idplayer, fixtureId);
-                var AgentLimitsStraight = GetAgentLimitsStraight(idplayer, fixtureId);
-
-                var TotalAmountValue = GetTotalValuePerGame(idplayer, fixtureId, idMarket) + betslipItem.BsRiskAmount;
-
-                if (PlayerLimitsStraight != null)
+                if (playerLimitsStraight != null)
                 {
-                    MinRiskAmount = PlayerLimitsStraight.MinWager;
-                    MaxRiskAmount = PlayerLimitsStraight.MaxWager;
-                    MaxWinAmount = PlayerLimitsStraight.MaxPayout;
-
-                    MinPriceAmount = PlayerLimitsStraight.MinPrice;
-                    MaxPriceAmount = PlayerLimitsStraight.MaxPrice;
-                    TotAmtPerGame = PlayerLimitsStraight.TotAmtGame;
+                    minBetAmount = playerLimitsStraight.MinWager;
+                    maxRiskAmount = playerLimitsStraight.MaxWager;
+                    maxWinAmount = playerLimitsStraight.MaxPayout;
+                    minPriceAmount = playerLimitsStraight.MinPrice;
+                    maxPriceAmount = playerLimitsStraight.MaxPrice;
+                    totAmtPerGame = playerLimitsStraight.TotAmtGame;
                 }
-                else if (AgentLimitsStraight != null)
+                else if (agentLimitsStraight != null)
                 {
-                    MinRiskAmount = AgentLimitsStraight.MinWager;
-                    MaxRiskAmount = AgentLimitsStraight.MaxWager;
-                    MaxWinAmount = AgentLimitsStraight.MaxPayout;
-
-
-                    MinPriceAmount = AgentLimitsStraight.MinPrice;
-                    MaxPriceAmount = AgentLimitsStraight.MaxPrice;
-                    TotAmtPerGame = AgentLimitsStraight.TotAmtGame;
+                    minBetAmount = agentLimitsStraight.MinWager;
+                    maxRiskAmount = agentLimitsStraight.MaxWager;
+                    maxWinAmount = agentLimitsStraight.MaxPayout;
+                    minPriceAmount = agentLimitsStraight.MinPrice;
+                    maxPriceAmount = agentLimitsStraight.MaxPrice;
+                    totAmtPerGame = agentLimitsStraight.TotAmtGame;
                 }
 
                 if (!GetPlayerInfo(idplayer).Access)
@@ -379,8 +315,7 @@ namespace WolfApiCore.DbTier
                 {
                     if (snapshotItem != null && snapshotItem.Status == 1 /*Line Open*/)
                     {
-                        if (int.Parse(snapshotItem.PriceUS) == betslipItem.Odds1 &&
-                            betslipItem.Line1 == snapshotItem.Line)
+                        if (int.Parse(snapshotItem.PriceUS) == betslipItem.Odds1)
                         {
                             betslipItem.StatusForWager = 10;  //ready for wager
                         }
@@ -402,7 +337,7 @@ namespace WolfApiCore.DbTier
                                 betslipItem.Line1 = snapshotItem.Line;
                                 betslipItem.BaseLine = snapshotItem.BaseLine;
                                 betslipItem.BsBetResult = -51;
-                                betslipItem.BsMessage = "Line Changed, please check the new value";
+                                betslipItem.BsMessage = "Line Change Detected.";
                             }
                         }
                     }
@@ -411,68 +346,50 @@ namespace WolfApiCore.DbTier
                         //linea cerrada
                         betslipItem.StatusForWager = 5; //linea cambio y player no acepta cambio de linea
                         betslipItem.BsBetResult = -50;
-                        betslipItem.BsMessage = "Line is closed";
+                        betslipItem.BsMessage = "Line closed";
                     }
 
-                    if (betslipItem.StatusForWager is 10 or 9 && betslipItem.BsRiskAmount > 0)
+                    if ((betslipItem.StatusForWager is 10 or 9) && betslipItem.BsRiskAmount > 0)
                     {
-                        //var dailyTotal = GetTodayWinAmount(idplayer);
-                        //if (dailyTotal?.WinAmount >= 1500 || dailyTotal?.RiskAmount >= 11000)
-                        //{
-                        //    originalProp.StatusForWager = 5;
-                        //    originalProp.BsBetResult = -50;
-                        //    originalProp.BsMessage = "Exceeded Daily Total Win amount.";
-                        //}
-                        //else {                                                             
-                        
-                        if (betslipItem.Odds1 < MinPriceAmount )
+                        if (betslipItem.Odds1 < minPriceAmount )
                         {
                             betslipItem.StatusForWager = 5;
                             betslipItem.BsBetResult = -50;
-                            betslipItem.BsMessage = $"Ticket exceeds Min Price. (Min = {MinPriceAmount:F0})";
+                            betslipItem.BsMessage = $"Ticket exceeds Min Price. (Min = {minPriceAmount:F0})";
                         }                            
-                        else if (betslipItem.Odds1 > MaxPriceAmount)
+                        else if (betslipItem.Odds1 > maxPriceAmount)
                         {
                             betslipItem.StatusForWager = 5;
                             betslipItem.BsBetResult = -50;
-                            betslipItem.BsMessage = $"Ticket exceeds Max Price. (Max = {MaxPriceAmount:F0})";
+                            betslipItem.BsMessage = $"Ticket exceeds Max Price. (Max = {maxPriceAmount:F0})";
                         }
-
-                        else if (TotalAmountValue > TotAmtPerGame)
+                        else if (totalAmountValue > totAmtPerGame)
                         {
                             betslipItem.StatusForWager = 5;
                             betslipItem.BsBetResult = -50;
-                            betslipItem.BsMessage = $"Ticket exceeds Max Risk per game. (Max = {TotAmtPerGame:F0})";
+                            betslipItem.BsMessage = $"Ticket exceeds Max Bet Amount per game. (Max = {totAmtPerGame:F0})";
                         }
-
-                        else if (betslipItem.BsRiskAmount < MinRiskAmount)
+                        else if (betAmount < minBetAmount)
                         {
                             betslipItem.StatusForWager = 5; 
                             betslipItem.BsBetResult = -50;
-                            betslipItem.BsMessage = $"Less than Min Risk amount. (Min = {MinRiskAmount:F0})";
+                            betslipItem.BsMessage = $"Less than Min Bet Amount. (Min = {minBetAmount:F0})";
                         }
-                        else if (betslipItem.BsRiskAmount > MaxRiskAmount)
-                        {
-                            betslipItem.StatusForWager = 5; 
-                            betslipItem.BsBetResult = -50;
-                            betslipItem.BsMessage = $"Exceeded Max Risk amount. (Max = {MaxRiskAmount:F0})";
-                        }
-                        else if (betslipItem.BsWinAmount > MaxWinAmount)
-                        {
-                            betslipItem.StatusForWager = 5; 
-                            betslipItem.BsBetResult = -50;
-                            betslipItem.BsMessage = $"Exceeded Max Win amount. (Max = {MaxWinAmount:F0})";
-                        }                        
+                        //Remarks: 03/24/2024 Donovan requested to Check Min a
+                        //else if (betslipItem.BsRiskAmount > maxRiskAmount)
+                        //{
+                        //    betslipItem.StatusForWager = 5; 
+                        //    betslipItem.BsBetResult = -50;
+                        //    betslipItem.BsMessage = $"Exceeded Max Risk amount. (Max = {maxRiskAmount:F0})";
+                        //}
+                        //else if (betslipItem.BsWinAmount > maxWinAmount)
+                        //{
+                        //    betslipItem.StatusForWager = 5; 
+                        //    betslipItem.BsBetResult = -50;
+                        //    betslipItem.BsMessage = $"Exceeded Max Win amount. (Max = {maxWinAmount:F0})";
+                        //}                        
                     }
-                    //else
-                    //{
-                    //    originalProp.StatusForWager = 5; //linea cambio y player no acepta cambio de linea
-                    //    originalProp.BsBetResult = -50;
-                    //    originalProp.BsMessage = "Risk amount must be greater than 0.";
-                    //}
-
                 }
-
 
             }
             catch (Exception ex)
@@ -1915,46 +1832,27 @@ namespace WolfApiCore.DbTier
 
         public List<CheckListLines> GetLSportsBetsInfo(List<CheckListLines> checkList)
         {
-            List<BetCheck> betList = new List<BetCheck>();
-
-            string result = "";
-
-           // int MarketId = 52;
-            //   object BetId = 171905384311502906;
-
-          //  List<int> fix = new List<int>();
-
-         //   fix.Add(11481780);
-
-            var obj = new RestApiClass().CallLSportAPI(checkList, "1245", "administracion@corporacionzircon.com", "J83@d784cE");
-
-
-            if (obj != null)
+            var reply = new RestApiClass().CallLSportAPI(checkList, "1245", "administracion@corporacionzircon.com", "J83@d784cE");
+            if (reply != null)
             {
-                if (obj.Body != null && obj.Body.Count > 0)
+                if (reply.Body != null && reply.Body.Count > 0)
                 {
-                    foreach (var body in obj.Body)
+                    foreach (var body in reply.Body)
                     {
                         if(body != null)
                         {
                             foreach (var item in checkList)
                             {
-                                if (item.FixtureId == body.FixtureId)
+                                if (item.FixtureId == body.FixtureId && body.Markets != null)
                                 {
-                                    var betMarket = body.Markets != null ? body.Markets.Where(x => x.Id == item.MarketId).FirstOrDefault() : null;
-
+                                    var betMarket = body.Markets.FirstOrDefault(x => x.Id == item.MarketId);
                                     if (betMarket != null && betMarket.Bets != null && betMarket.Bets.Count() > 0)
                                     {
-                                        item.BetInfo = betMarket.Bets.Where(x => x.Id.ToString() == item.BetId.ToString()).FirstOrDefault();
+                                        item.BetInfo = betMarket.Bets.FirstOrDefault(x => x.Id.ToString() == item.BetId.ToString());
                                     }
-
                                 }
-
-
                             }
-
                         }
-
                     }//end foreach
                 }
                 else

@@ -30,8 +30,6 @@ namespace WolfApiCore.LSportApi
             HttpWebResponse response;
             try
             {
-
-
                 string baseUrl = "https://stm-snapshot.lsports.eu/InPlay/GetEvents";
                 CallRequest requestObj = new CallRequest
                 {
@@ -48,7 +46,6 @@ namespace WolfApiCore.LSportApi
                 //  request.Headers["Authorization"] = "Bearer fP3yzoJNPrJknHmeyzLuKxqWzaQ8deBSeskrsFec2Gw";
 
                 var myContent = JsonConvert.SerializeObject(requestObj);
-
                 var data = Encoding.ASCII.GetBytes(myContent);
 
                 request.ContentType = "application/json";
