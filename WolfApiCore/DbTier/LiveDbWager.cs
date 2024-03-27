@@ -37,19 +37,19 @@ namespace WolfApiCore.DbTier
             var lsportSnapshot = GetLSportsBetsInfo(cl);
             foreach (var fixture in betslip.Events)
             {
-                foreach (var propSelected in fixture.Selections)
+                foreach (var betSlipItem in fixture.Selections)
                 {
-                    var snapshotItem = lsportSnapshot.FirstOrDefault(s => s.BetId == Convert.ToInt64(propSelected.IdL1));
+                    var snapshotItem = lsportSnapshot.FirstOrDefault(s => s.BetId == Convert.ToInt64(betSlipItem.IdL1));
                     if (null != snapshotItem)
                     {
-                        var dbProp = ValidateProp(propSelected, snapshotItem.BetInfo, betslip.AcceptLineChange, fixture.FixtureId, betslip.IdPlayer, propSelected.MarketId);
-                        propSelected.Odds1 = dbProp.Odds1;
-                        propSelected.Price = dbProp.Price;
-                        propSelected.Line1 = dbProp.Line1;
-                        propSelected.BaseLine = dbProp.BaseLine;
-                        propSelected.IdL1 = dbProp.IdL1;
-                        propSelected.BsMessage = dbProp.BsMessage;
-                        propSelected.BsBetResult = dbProp.BsBetResult;
+                        var dbProp = ValidateBetSlipItem(betSlipItem, snapshotItem.BetInfo, betslip.AcceptLineChange, fixture.FixtureId, betslip.IdPlayer, betSlipItem.MarketId);
+                        betSlipItem.Odds1 = dbProp.Odds1;
+                        betSlipItem.Price = dbProp.Price;
+                        betSlipItem.Line1 = dbProp.Line1;
+                        betSlipItem.BaseLine = dbProp.BaseLine;
+                        betSlipItem.IdL1 = dbProp.IdL1;
+                        betSlipItem.BsMessage = dbProp.BsMessage;
+                        betSlipItem.BsBetResult = dbProp.BsBetResult;
                         if (dbProp.StatusForWager != 9 && dbProp.StatusForWager != 10)
                             validForParlay = false;
                     }
@@ -270,18 +270,20 @@ namespace WolfApiCore.DbTier
             return Math.Min(betslipItem.BsRiskAmount.Value, betslipItem.BsWinAmount.Value);
         }
 
-        public LSport_EventPropDto ValidateProp(LSport_EventPropDto betslipItem, Bet snapshotItem,  bool acceptLineChanged, int fixtureId, int idplayer, int idMarket)
+        public LSport_EventPropDto ValidateBetSlipItem(LSport_EventPropDto betslipItem, Bet snapshotItem,  bool acceptLineChanged, int fixtureId, int idplayer, int idMarket)
         {
             try
             {
                 var betAmount = GetBetAmount(betslipItem);
                 var limits = GetPlayerLimits(idplayer);
+
                 var minBetAmount = (decimal)10;//500   **estos son los oldsvalues**
-                var maxRiskAmount = (decimal)1000;//100
-                var maxWinAmount = (decimal)2000;//100
+                var maxBetAmount = (decimal)1000;//100
+                var maxPayout = (decimal)2000;//100
                 var minPriceAmount = (decimal)-1000;
                 var maxPriceAmount = (decimal)1000;
                 var totAmtPerGame = (decimal)500;
+
                 var playerLimitsStraight = GetPlayerLimitsStraight(idplayer, fixtureId);
                 var agentLimitsStraight = GetAgentLimitsStraight(idplayer, fixtureId);
                 var totalAmountValue = GetTotalValuePerGame(idplayer, fixtureId, idMarket) + betAmount;
@@ -289,8 +291,8 @@ namespace WolfApiCore.DbTier
                 if (playerLimitsStraight != null)
                 {
                     minBetAmount = playerLimitsStraight.MinWager;
-                    maxRiskAmount = playerLimitsStraight.MaxWager;
-                    maxWinAmount = playerLimitsStraight.MaxPayout;
+                    maxBetAmount = playerLimitsStraight.MaxWager;
+                    maxPayout = playerLimitsStraight.MaxPayout;
                     minPriceAmount = playerLimitsStraight.MinPrice;
                     maxPriceAmount = playerLimitsStraight.MaxPrice;
                     totAmtPerGame = playerLimitsStraight.TotAmtGame;
@@ -298,8 +300,8 @@ namespace WolfApiCore.DbTier
                 else if (agentLimitsStraight != null)
                 {
                     minBetAmount = agentLimitsStraight.MinWager;
-                    maxRiskAmount = agentLimitsStraight.MaxWager;
-                    maxWinAmount = agentLimitsStraight.MaxPayout;
+                    maxBetAmount = agentLimitsStraight.MaxWager;
+                    maxPayout = agentLimitsStraight.MaxPayout;
                     minPriceAmount = agentLimitsStraight.MinPrice;
                     maxPriceAmount = agentLimitsStraight.MaxPrice;
                     totAmtPerGame = agentLimitsStraight.TotAmtGame;
@@ -307,9 +309,9 @@ namespace WolfApiCore.DbTier
 
                 if (!GetPlayerInfo(idplayer).Access)
                 {
-                    betslipItem.StatusForWager = 5; //linea cambio y player no acepta cambio de linea
+                    betslipItem.StatusForWager = 5;//Player  no tiene acceso a VegasLives
                     betslipItem.BsBetResult = -50;
-                    betslipItem.BsMessage = "Contact your Agent.";
+                    betslipItem.BsMessage = "Access denied, contact your Agent.";
                 }
                 else 
                 {
@@ -369,27 +371,32 @@ namespace WolfApiCore.DbTier
                         {
                             betslipItem.StatusForWager = 5;
                             betslipItem.BsBetResult = -50;
-                            betslipItem.BsMessage = $"Ticket exceeds Max Bet Amount per game. (Max = {totAmtPerGame:F0})";
+                            betslipItem.BsMessage = $"Ticket exceeds Max Total Amount per game. (Max = {totAmtPerGame:F0})";
                         }
+
+                        //Remarks: 03/24/2024 Donovan requested to Check Min a
+                        // bet amount tiene q estar entre minBetAmount y maxBetAmount
                         else if (betAmount < minBetAmount)
                         {
                             betslipItem.StatusForWager = 5; 
                             betslipItem.BsBetResult = -50;
-                            betslipItem.BsMessage = $"Less than Min Bet Amount. (Min = {minBetAmount:F0})";
+                            betslipItem.BsMessage = $"Less than Min Wager. (Min = {minBetAmount:F0})";
                         }
-                        //Remarks: 03/24/2024 Donovan requested to Check Min a
-                        //else if (betslipItem.BsRiskAmount > maxRiskAmount)
-                        //{
-                        //    betslipItem.StatusForWager = 5; 
-                        //    betslipItem.BsBetResult = -50;
-                        //    betslipItem.BsMessage = $"Exceeded Max Risk amount. (Max = {maxRiskAmount:F0})";
-                        //}
-                        //else if (betslipItem.BsWinAmount > maxWinAmount)
-                        //{
-                        //    betslipItem.StatusForWager = 5; 
-                        //    betslipItem.BsBetResult = -50;
-                        //    betslipItem.BsMessage = $"Exceeded Max Win amount. (Max = {maxWinAmount:F0})";
-                        //}                        
+                        
+                        else if (betAmount > maxBetAmount)
+                        {
+                            betslipItem.StatusForWager = 5;
+                            betslipItem.BsBetResult = -50;
+                            betslipItem.BsMessage = $"Exceeded Max Wager. (Max = {maxBetAmount:F0})";
+                        }               
+                    
+                        // Comparar el WinAmount con el MaxPayot
+                        else if (betslipItem.BsWinAmount > maxPayout)
+                        {
+                            betslipItem.StatusForWager = 5;
+                            betslipItem.BsBetResult = -50;
+                            betslipItem.BsMessage = $"Exceeded Max Payout. (Max = {maxPayout:F0})";
+                        }
                     }
                 }
 
@@ -1834,7 +1841,7 @@ namespace WolfApiCore.DbTier
 
         public List<CheckListLines> GetLSportsBetsInfo(List<CheckListLines> checkList)
         {
-            var reply = new RestApiClass().CallLSportAPI(checkList, "1245", "administracion@corporacionzircon.com", "J83@d784cE");
+            var reply = new RestApiClass().GetLSportsSnapshot(checkList, "1245", "administracion@corporacionzircon.com", "J83@d784cE");
             if (reply != null)
             {
                 if (reply.Body != null && reply.Body.Count > 0)

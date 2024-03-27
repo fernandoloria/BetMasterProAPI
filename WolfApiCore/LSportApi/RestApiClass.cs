@@ -20,7 +20,7 @@ namespace WolfApiCore.LSportApi
             public List<int> Markets { get; set; }
         }
 
-        public FixtureApiDto CallLSportAPI(List<CheckListLines> checkList, string packageId,  string userName, string password)
+        public FixtureApiDto GetLSportsSnapshot(List<CheckListLines> checkList, string packageId,  string userName, string password)
         {
             List<int> fixtureList = checkList.Select(x => x.FixtureId).Distinct().ToList();
             List<int> marketList = checkList.Select(x => x.MarketId).Distinct().ToList();
