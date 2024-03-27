@@ -866,18 +866,26 @@ namespace WolfApiCore.DbTier
                         if (idDgsWager > 0)
                         {
                             InsertDgsWagerDetail(idDgsWager, CompleteDescription, CompleteDescription);
+                            //actualizamos el idwager en la tabla auxiliar
+                            UpdateLiveWagerHeader(idlivewager, idDgsWager);
+
+                            createStraightWagerModel.PropSelected.BsTicketNumber = idlivewager + "-" + idDgsWager;
+                            createStraightWagerModel.PropSelected.BsBetResult = 1000; //success
+
+                        } else {
+                            
+                            DeleteLiveWager(idlivewager);
+                            createStraightWagerModel.PropSelected.BsTicketNumber = string.Empty;
+                            createStraightWagerModel.PropSelected.BsBetResult = -1;
                         }
 
-                        //actualizamos el idwager en la tabla auxiliar
-                        UpdateLiveWagerHeader(idlivewager, idDgsWager);
 
-                        createStraightWagerModel.PropSelected.BsTicketNumber = idlivewager + "-" + idDgsWager;
-                        createStraightWagerModel.PropSelected.BsBetResult = 1000; //success
 
                     }
                     else
                     {
-                        UpdateLiveWagerHeader(idlivewager, -100);
+                        
+                        DeleteLiveWager(idlivewager);
                         createStraightWagerModel.PropSelected.BsBetResult = -1;
                     }
                 }
@@ -974,24 +982,24 @@ namespace WolfApiCore.DbTier
                             {
                                 InsertDgsWagerDetail(idDgsWager, item, item);
                             }
+
+                                                    //actualizamos el idwager en la tabla auxiliar
+                            UpdateLiveWagerHeader(idlivewager, idDgsWager);
+
+                            //  propSelected.BsTicketNumber = idlivewager + "-" + idDgsWager;
+                            //  propSelected.BsBetResult = 0;
+                            betslipObj.ParlayBetResult = 0;
+                            betslipObj.ParlayBetTicket = idlivewager + "-" + idDgsWager;
                         }
                         else
                         {
-                            UpdateLiveWagerHeader(idlivewager, -100);
+                            DeleteLiveWager(idlivewager);
                             betslipObj.ParlayBetResult = -1;
                         }
-
-                        //actualizamos el idwager en la tabla auxiliar
-                        UpdateLiveWagerHeader(idlivewager, idDgsWager);
-
-                        //  propSelected.BsTicketNumber = idlivewager + "-" + idDgsWager;
-                        //  propSelected.BsBetResult = 0;
-                        betslipObj.ParlayBetResult = 0;
-                        betslipObj.ParlayBetTicket = idlivewager + "-" + idDgsWager;
                     }
                     else
                     {
-                        UpdateLiveWagerHeader(idlivewager, -100);
+                        DeleteLiveWager(idlivewager);
                         betslipObj.ParlayBetResult = -1;
                     }
                 }
@@ -1589,6 +1597,31 @@ namespace WolfApiCore.DbTier
             return resp;
         }
 
+        public int DeleteLiveWager(int idLiveWager)
+        {
+            int resp = 0;
+
+            try
+            {
+                using (var connection = new SqlConnection(moverConnString))
+                {
+                    var procedure = "[sp_MGL_DeleteLiveWager]";
+
+                    var values = new
+                    {
+                        IdLiveWager = idLiveWager,
+                    };
+
+                    resp = connection.Query<int>(procedure, values, commandType: CommandType.StoredProcedure).FirstOrDefault();
+                }
+            }
+            catch (Exception ex)
+            {
+                resp = -1;
+            }
+
+            return resp;
+        }
         public PlayerInfoDto GetPlayerInfo(int idplayer, int idCall = 0)
         {
             PlayerInfoDto resp = new PlayerInfoDto();
@@ -1956,8 +1989,9 @@ namespace WolfApiCore.DbTier
 
         private string FormatWagerDetailCompleteDescription(WagerDetailCompleteDescriptionModel wagerDetailDescription) {
             
+            string[] leagueNameExceptions = { "E-Sports" };
             string completeDescription;
-
+            
             string line = wagerDetailDescription.Line.IsNullOrEmpty() ? "" : $"{wagerDetailDescription.Line}" ;
             string player = wagerDetailDescription.BaseLine.IsNullOrEmpty() ? "" : $"{wagerDetailDescription.BaseLine}" ;
 
@@ -1967,6 +2001,16 @@ namespace WolfApiCore.DbTier
             } else {
                 player += " ";
             }
+
+            string[] lineValues = line.Split(' ');
+            string firstLine = lineValues[0];
+
+            if ( !double.TryParse(firstLine, out double parsedLine) )
+            {
+                parsedLine = 0;
+            }
+
+            string newLine = parsedLine > 0 ? $"+{line}" : $"{line}";
 
             string odds = wagerDetailDescription.Odds1 > 0 ? $"+{wagerDetailDescription.Odds1}" : $"{wagerDetailDescription.Odds1}";
 
@@ -1978,7 +2022,7 @@ namespace WolfApiCore.DbTier
 
             bool isTournament = wagerDetailDescription!.IsTournament.HasValue ? (bool)wagerDetailDescription.IsTournament : false;
 
-            completeDescription = $"{wagerDetailDescription!.MarketName}: {player} {wagerDetailDescription.Name} {line}{odds} [{ ( !isTournament ? $"{lastHomeTeamName} vs {lastVisitorTeamName}" : wagerDetailDescription.LeagueName!) }/{wagerDetailDescription!.SportName}]";
+            completeDescription = $"{wagerDetailDescription!.MarketName}: {player} {wagerDetailDescription.Name} {newLine}{odds} [{ ( !isTournament ? $"{lastHomeTeamName} vs {lastVisitorTeamName}" : wagerDetailDescription.LeagueName!) }/{ ( !leagueNameExceptions.Contains(wagerDetailDescription!.SportName) ? wagerDetailDescription!.SportName : $"{wagerDetailDescription!.SportName} {wagerDetailDescription.LeagueName}") }]";
 
             return completeDescription;
         }
