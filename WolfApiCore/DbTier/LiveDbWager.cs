@@ -85,12 +85,19 @@ namespace WolfApiCore.DbTier
                                 selection.StatusForWager = betResult.StatusForWager;
                                 selection.BsBetResult = betResult.BsBetResult;
                                 selection.BsTicketNumber = betResult.BsTicketNumber;
+
+                                if (selection.BsBetResult == -1 )
+                                {
+                                    selection.BsMessage = "Wager Rejected";
+                                }
+                                
                             }
                         }
                     }
                 }
             }
 
+            //Parlay ??
             var minRiskAmount = (decimal)5;
             var maxRiskAmount = (decimal)1000;
             var maxWinAmount = (decimal)2000;
@@ -348,7 +355,7 @@ namespace WolfApiCore.DbTier
                     else
                     {
                         //linea cerrada
-                        betslipItem.StatusForWager = 5; //linea cambio y player no acepta cambio de linea
+                        betslipItem.StatusForWager = 5;
                         betslipItem.BsBetResult = -52;
                         betslipItem.BsMessage = "Line closed";
                     }
@@ -2022,7 +2029,7 @@ namespace WolfApiCore.DbTier
 
             bool isTournament = wagerDetailDescription!.IsTournament.HasValue ? (bool)wagerDetailDescription.IsTournament : false;
 
-            completeDescription = $"{wagerDetailDescription!.MarketName}: {player} {wagerDetailDescription.Name} {newLine}{odds} [{ ( !isTournament ? $"{lastHomeTeamName} vs {lastVisitorTeamName}" : wagerDetailDescription.LeagueName!) }/{ ( !leagueNameExceptions.Contains(wagerDetailDescription!.SportName) ? wagerDetailDescription!.SportName : $"{wagerDetailDescription!.SportName} {wagerDetailDescription.LeagueName}") }]";
+            completeDescription = $"{wagerDetailDescription!.MarketName}: {player} {wagerDetailDescription.Name} {newLine} {odds} [{ ( !isTournament ? $"{lastHomeTeamName} vs {lastVisitorTeamName}" : wagerDetailDescription.LeagueName!) }/{ ( !leagueNameExceptions.Contains(wagerDetailDescription!.SportName) ? wagerDetailDescription!.SportName : $"{wagerDetailDescription!.SportName} {wagerDetailDescription.LeagueName}") }]";
 
             return completeDescription;
         }
