@@ -12,5 +12,6 @@ namespace WolfApiCore.Models
         public int? Odds1 { get; set; }
         public bool? IsTournament { get; set; }
         public string? LeagueName { get; set; }
+        public int FixtureId { get; set; }
     }
 }
