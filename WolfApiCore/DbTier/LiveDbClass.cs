@@ -228,6 +228,7 @@ namespace WolfApiCore.DbTier
                                         ShowLeague = false,
                                         LeagueName = $"{ (HasLocationNameException(game.LocationName) ? game.LeagueName : $"{game.LocationName} - {game.LeagueName}") }",   ///game.LeagueName + " - " + game.LocationName,
                                         LeagueId = game.LeagueId,
+                                        IsTournament = game.IsTournament,
                                         Games = new List<LSportGameDto>()
                                     };
 
@@ -1218,6 +1219,7 @@ namespace WolfApiCore.DbTier
         public string? Market { get; set; }
         public string? Player { get; set; }
         public string? Line { get; set; }
+        public string? LeagueName { get; set; }
     }
 
     public class HistoryBetsDTO
