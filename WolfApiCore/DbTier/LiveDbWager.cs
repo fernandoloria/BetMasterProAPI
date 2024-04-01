@@ -856,7 +856,8 @@ namespace WolfApiCore.DbTier
                         Line = createStraightWagerModel.PropSelected.Line1,
                         Odds1 = createStraightWagerModel.PropSelected.Odds1,
                         LeagueName = createStraightWagerModel.LeagueName,
-                        IsTournament = createStraightWagerModel.IsTournament
+                        IsTournament = createStraightWagerModel.IsTournament,
+                        FixtureId = (int)createStraightWagerModel.FixtureId!
                     };
 
                     string Description /*255*/ = "VegasLive #" + idlivewager + " [" + createStraightWagerModel.FixtureId + "] " + createStraightWagerModel.SportName + " / " + createStraightWagerModel.VisitorTeam + " @ " + createStraightWagerModel.HomeTeam;
@@ -965,7 +966,8 @@ namespace WolfApiCore.DbTier
                                 Line = sel.Line1,
                                 Odds1 = sel.Odds1,
                                 IsTournament = item.IsTournament,
-                                LeagueName = item.LeagueName
+                                LeagueName = item.LeagueName,
+                                FixtureId = item.FixtureId
                             };
 
                             string itemDescription = FormatWagerDetailCompleteDescription(wagerDetailCompleteDescriptionModel);
@@ -2027,11 +2029,37 @@ namespace WolfApiCore.DbTier
             string lastHomeTeamName = homeTeamWords?.Length == 1 ? homeTeamWords[0] : homeTeamWords![ homeTeamWords.Length - 2] + " " + homeTeamWords[ homeTeamWords.Length - 1];
             string lastVisitorTeamName = visitorTeamWords?.Length == 1 ? visitorTeamWords[0] : visitorTeamWords![ visitorTeamWords.Length - 2] + " " + visitorTeamWords[ visitorTeamWords.Length - 1];
 
-            bool isTournament = wagerDetailDescription!.IsTournament.HasValue ? (bool)wagerDetailDescription.IsTournament : false;
+            bool isTournament = IsSportWithTournament(wagerDetailDescription!.FixtureId!);
 
             completeDescription = $"{wagerDetailDescription!.MarketName}: {player} {wagerDetailDescription.Name} {newLine} {odds} [{ ( !isTournament ? $"{lastHomeTeamName} vs {lastVisitorTeamName}" : wagerDetailDescription.LeagueName!) }/{ ( !leagueNameExceptions.Contains(wagerDetailDescription!.SportName) ? wagerDetailDescription!.SportName : $"{wagerDetailDescription!.SportName} {wagerDetailDescription.LeagueName}") }]";
 
             return completeDescription;
+        }
+
+        public bool IsSportWithTournament(int fixtureId)
+        {
+            bool response;
+
+            try
+            {
+                using (var connection = new SqlConnection(moverConnString))
+                {
+                    var procedure = "[sp_MGL_IsSportWithTournament]";
+
+                    var values = new
+                    {
+                        fixtureId,
+                    };
+
+                    response = connection.Query<bool>(procedure, values, commandType: CommandType.StoredProcedure).FirstOrDefault();
+                }
+            }
+            catch (Exception ex)
+            {
+                response = false;
+            }
+
+            return response;
         }
 
     }//end class
