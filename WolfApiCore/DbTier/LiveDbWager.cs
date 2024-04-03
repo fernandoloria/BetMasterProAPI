@@ -5,15 +5,28 @@ using System.Data;
 using WolfApiCore.LSportApi;
 using WolfApiCore.Models;
 using static WolfApiCore.Models.AdminModels;
+using System.Linq;
+using System.Reflection.Metadata.Ecma335;
 
 namespace WolfApiCore.DbTier
 {
     public class LiveDbWager
     {
-        private readonly string dgsConnString = "Data Source=192.168.11.29;Initial Catalog=DGSDATA;Persist Security Info=True;User ID=Payments;Password=p@yM3nts2701;TrustServerCertificate=True";
-        private readonly string moverConnString = "Data Source=192.168.11.29;Initial Catalog=mover;Persist Security Info=True;User ID=live;Password=d_Ez*gIb8v7NogU;TrustServerCertificate=True";
+        private readonly string DgsConnString = "Data Source=192.168.11.29;Initial Catalog=DGSDATA;Persist Security Info=True;User ID=Payments;Password=p@yM3nts2701;TrustServerCertificate=True";
+        private readonly string MoverConnString = "Data Source=192.168.11.29;Initial Catalog=mover;Persist Security Info=True;User ID=live;Password=d_Ez*gIb8v7NogU;TrustServerCertificate=True";
 
         //private readonly AppConfig _appConfig = new AppConfig();
+
+        //solo para spread
+        private static readonly List<int> SpreadMarkets = new List<int>{
+            3, 13, 53, 61, 64, 65, 66, 67, 68, 95, 201, 250, 281, 283, 307, 342, 386, 407, 408, 433, 447, 
+            448, 449, 450, 467, 468, 526, 555, 757, 866, 935, 958, 1083, 1149, 1150, 1151, 1152, 1153, 1215, 
+            1227, 1228, 1231, 1232, 1240, 1241, 1248, 1270, 1318, 1319, 1320, 1321, 1322, 1367, 1368, 1369, 
+            1370, 1371, 1372, 1373, 1374, 1375, 1376, 1380, 1381, 1382, 1383, 1384, 1385, 1386, 1390, 1391, 
+            1394, 1439, 1541, 1558, 1579, 1580, 1581, 1609, 1610, 1620, 1622, 1691, 1692, 1693, 1694, 1835, 
+            1877, 1878, 1967, 2035, 2040, 2052, 2057, 2063, 2095, 2191, 2259, 2286, 2342, 2389, 2391, 2393, 
+            2395, 2397, 2408, 2409, 2410, 2411, 2675, 2732
+        };
 
 
         public LSport_BetSlipObj ValidateSelectionsForWagers(LSport_BetSlipObj betslip)
@@ -196,7 +209,7 @@ namespace WolfApiCore.DbTier
             RespPlayerLastBet lastBet = new RespPlayerLastBet();
             try
             {
-                using var connection = new SqlConnection(moverConnString);
+                using var connection = new SqlConnection(MoverConnString);
                 connection.Open();
 
                 lastBet = connection.QueryFirstOrDefault<RespPlayerLastBet>(
@@ -328,6 +341,7 @@ namespace WolfApiCore.DbTier
                             snapshotItem.Line == betslipItem.Line1)
                         {
                             betslipItem.StatusForWager = 10;  //ready for wager
+                            betslipItem.BaseLine = snapshotItem.BaseLine;
                         }
                         else
                         {
@@ -421,7 +435,7 @@ namespace WolfApiCore.DbTier
         private PlayerLimitsHierarchyParlay GetPlayerLimitsParlay(int PlayerId)
         {
             var oPlayerHierarchy = GetPlayerHierarchy(PlayerId);
-            LiveDbClass oLiveClass = new LiveDbClass(moverConnString);
+            LiveDbClass oLiveClass = new LiveDbClass(MoverConnString);
             LiveAdminDbClass oAdminClass = new LiveAdminDbClass();
             PlayerLimitsHierarchyParlay resp = new PlayerLimitsHierarchyParlay
             {
@@ -496,7 +510,7 @@ namespace WolfApiCore.DbTier
         private PlayerLimitsHierarchyStraight GetPlayerLimitsStraight(int PlayerId, int FixtureId)
         {
             var oPlayerHierarchy = GetPlayerHierarchy(PlayerId);
-            LiveDbClass oLiveClass = new LiveDbClass(moverConnString);
+            LiveDbClass oLiveClass = new LiveDbClass(MoverConnString);
             LiveAdminDbClass oAdminClass = new LiveAdminDbClass();
             PlayerLimitsHierarchyStraight resp = new PlayerLimitsHierarchyStraight
             {
@@ -579,7 +593,7 @@ namespace WolfApiCore.DbTier
             var limits = 0;
             try
             {
-                using var connection = new SqlConnection(moverConnString);
+                using var connection = new SqlConnection(MoverConnString);
                 limits = connection.Query<int>(@"SELECT [dbo].[fn_TotalAmountPlayedByGameMarket] (@PlayerId,@FixtureId , @Marketid)", new { PlayerId, FixtureId, Marketid }).FirstOrDefault();
             }
             catch (Exception ex)
@@ -593,7 +607,7 @@ namespace WolfApiCore.DbTier
         private AgentLimitsHierarchyStraight GetAgentLimitsStraight(int PlayerId, int FixtureId)
         {
             var oPlayerHierarchy = GetPlayerHierarchy(PlayerId);
-            LiveDbClass oLiveClass = new LiveDbClass(moverConnString);
+            LiveDbClass oLiveClass = new LiveDbClass(MoverConnString);
             LiveAdminDbClass oAdminClass = new LiveAdminDbClass();
             AgentLimitsHierarchyStraight resp = new AgentLimitsHierarchyStraight
             {
@@ -720,7 +734,7 @@ namespace WolfApiCore.DbTier
         private AgentLimitsHierarchyParlay GetAgentLimitsParlay(int PlayerId)
         {
             var oPlayerHierarchy = GetPlayerHierarchy(PlayerId);
-            LiveDbClass oLiveClass = new LiveDbClass(moverConnString);
+            LiveDbClass oLiveClass = new LiveDbClass(MoverConnString);
             LiveAdminDbClass oAdminClass = new LiveAdminDbClass();
             AgentLimitsHierarchyParlay resp = new AgentLimitsHierarchyParlay
             {
@@ -850,6 +864,7 @@ namespace WolfApiCore.DbTier
                         SportName = createStraightWagerModel.SportName,
                         HomeTeam = createStraightWagerModel.HomeTeam,
                         VisitorTeam = createStraightWagerModel.VisitorTeam,
+                        MarketId = createStraightWagerModel.PropSelected.MarketId,
                         MarketName = createStraightWagerModel.PropSelected.MarketName,
                         Name = createStraightWagerModel.PropSelected.Name,
                         BaseLine = createStraightWagerModel.PropSelected.BaseLine,
@@ -960,6 +975,7 @@ namespace WolfApiCore.DbTier
                                 SportName = item.SportName,
                                 HomeTeam = item.HomeTeam,
                                 VisitorTeam = item.VisitorTeam,
+                                MarketId    = sel.MarketId,
                                 MarketName = sel.MarketName,
                                 Name = sel.Name,
                                 BaseLine = sel.BaseLine,
@@ -1042,7 +1058,7 @@ namespace WolfApiCore.DbTier
 
             try
             {
-                using var connection = new SqlConnection(dgsConnString);
+                using var connection = new SqlConnection(DgsConnString);
 
                 //  var parameters = new { FixtureId = paramData.FixtureId, MarketId = paramData.MarketId, Description = paramData.DetailDescription, Line = paramData.Line, Odds = paramData.Odds, Risk = paramData.Risk, Win = paramData.Win, WagerType = 1, WagerSelection = paramData.WagerSelection, IsLive = paramData.IsLive, SideName = paramData.SideName }; /*wager type = 1 straigh 2 parlays*/
 
@@ -1084,7 +1100,7 @@ namespace WolfApiCore.DbTier
 
             try
             {
-                using var connection = new SqlConnection(dgsConnString);
+                using var connection = new SqlConnection(DgsConnString);
 
                 var param = new DynamicParameters();
                 param.Add("@prmOnline", dbType: DbType.Byte, value: 1, direction: ParameterDirection.Input);
@@ -1165,7 +1181,7 @@ namespace WolfApiCore.DbTier
 
             try
             {
-                using var connection = new SqlConnection(dgsConnString);
+                using var connection = new SqlConnection(DgsConnString);
 
                 var param = new DynamicParameters();
                 param.Add("@prmOnline", dbType: DbType.Byte, value: 1, direction: ParameterDirection.Input);
@@ -1370,7 +1386,7 @@ namespace WolfApiCore.DbTier
             CompletePropMarket PropValue = new CompletePropMarket();
             try
             {
-                using var connection = new SqlConnection(moverConnString);
+                using var connection = new SqlConnection(MoverConnString);
                 PropValue = connection.Query<CompletePropMarket>("SELECT Id, FixtureId, MarketId, MarketName, MainLine, Name, Status, StartPrice, Price, PriceUS, BaseLine, Line FROM tb_MGL_FixtureBetLines where Fixtureid = @fixtureId and status = 1 and id = @Id",
                     new { fixtureId = FixtureId, Id = IdLine }).FirstOrDefault();
             }
@@ -1412,7 +1428,7 @@ namespace WolfApiCore.DbTier
                 }
                 else
                 {
-                    using var connection = new SqlConnection(dgsConnString);
+                    using var connection = new SqlConnection(DgsConnString);
                     playerData = connection.Query<PlayerDto>("SELECT IdPlayer, Player, IdProfile FROM [DGSData].[dbo].[PLAYER] WHERE IDPLAYER = @IdPlayer", new { IdPlayer }).FirstOrDefault();
                     playerData.Access = true;
                 }
@@ -1467,7 +1483,7 @@ namespace WolfApiCore.DbTier
             int idWt = 0;
             try
             {
-                using var connection = new SqlConnection(dgsConnString);
+                using var connection = new SqlConnection(DgsConnString);
                 idWt = connection.Query<Int32>("select IdWagerType from WAGERTYPE where IdProfile= @IdProfile and WagerType= @wagerType", new { IdProfile, WagerType }).FirstOrDefault();
             }
             catch (Exception ex)
@@ -1481,7 +1497,7 @@ namespace WolfApiCore.DbTier
             int resp = 0;
             try
             {
-                using (var connection = new SqlConnection(dgsConnString))
+                using (var connection = new SqlConnection(DgsConnString))
                 {
                     var procedure = "[VegasLive_InsertBet]";
                     var values = new
@@ -1509,7 +1525,7 @@ namespace WolfApiCore.DbTier
             int resp = 0;
             try
             {
-                using (var connection = new SqlConnection(dgsConnString))
+                using (var connection = new SqlConnection(DgsConnString))
                 {
                     var procedure = "[VegasLive_InsertBetDetail]";
                     var values = new
@@ -1534,7 +1550,7 @@ namespace WolfApiCore.DbTier
             int idWt = 0;
             try
             {
-                using var connection = new SqlConnection(moverConnString);
+                using var connection = new SqlConnection(MoverConnString);
                 connection.Query<string>(@"Update tb_MGL_WagerHeader SET DgsIdWager = " + dgsIdWager + "  WHERE IdLiveWager = " + idLiveWager).FirstOrDefault();
             }
             catch (Exception ex)
@@ -1548,7 +1564,7 @@ namespace WolfApiCore.DbTier
             int resp = 0;
             try
             {
-                using (var connection = new SqlConnection(moverConnString))
+                using (var connection = new SqlConnection(MoverConnString))
                 {
                     var procedure = "[sp_MGL_InsertWagerHeader]";
                     var values = new
@@ -1578,7 +1594,7 @@ namespace WolfApiCore.DbTier
             int resp = 0;
             try
             {
-                using (var connection = new SqlConnection(moverConnString))
+                using (var connection = new SqlConnection(MoverConnString))
                 {
                     var procedure = "[sp_MGL_InsertWagerDetail]";
                     var values = new
@@ -1612,7 +1628,7 @@ namespace WolfApiCore.DbTier
 
             try
             {
-                using (var connection = new SqlConnection(moverConnString))
+                using (var connection = new SqlConnection(MoverConnString))
                 {
                     var procedure = "[sp_MGL_DeleteLiveWager]";
 
@@ -1663,7 +1679,7 @@ namespace WolfApiCore.DbTier
                     }
                     else if ( idCall.Equals(0) )
                     {
-                        using (var connection = new SqlConnection(dgsConnString))
+                        using (var connection = new SqlConnection(DgsConnString))
                         {
                             var procedure = "[CORE_GETPLAYERINFO]";
                             var values = new
@@ -1679,7 +1695,7 @@ namespace WolfApiCore.DbTier
                     }
                     else
                     {
-                        using (var connection = new SqlConnection(dgsConnString))
+                        using (var connection = new SqlConnection(DgsConnString))
                         {
                             var procedure = "[CORE_GETPLAYERINFOBYIDCALL]";
                             var values = new
@@ -1709,7 +1725,7 @@ namespace WolfApiCore.DbTier
             PlayerLimitsDto limits = new PlayerLimitsDto();
             try
             {
-                using var connection = new SqlConnection(moverConnString);
+                using var connection = new SqlConnection(MoverConnString);
                 limits = connection.Query<PlayerLimitsDto>(@"SELECT Id
                                                                   ,PlayerId
                                                                   ,IdWagerType
@@ -1734,7 +1750,7 @@ namespace WolfApiCore.DbTier
             PlayerTotalWagerDto limits = new PlayerTotalWagerDto();
             try
             {
-                using var connection = new SqlConnection(moverConnString);
+                using var connection = new SqlConnection(MoverConnString);
                 limits = connection.Query<PlayerTotalWagerDto>(@"SELECT sum(WinAmount) as WinAmount, sum(RiskAmount) as RiskAmount  FROM [Mover].[dbo].[tb_MGL_WagerHeader]
                   where idplayer = @idPlayer and  CAST(PlacedDateTime AS DATE) = CAST(getdate() AS DATE) 
                   group by CAST(PlacedDateTime AS DATE)", new { idPlayer }).FirstOrDefault();
@@ -1751,7 +1767,7 @@ namespace WolfApiCore.DbTier
             LiveAdminDbClass oLiveAdmin = new LiveAdminDbClass();
             try
             {       // var oPlayerHierarchy = GetPlayerHierarchy(IdPlayer);
-                using var connection = new SqlConnection(dgsConnString);
+                using var connection = new SqlConnection(DgsConnString);
                 PlayerDtostream = connection.Query<PlayerDtoStream>("SELECT IdPlayer, Player, Password, IdProfile FROM [DGSData].[dbo].[PLAYER] WHERE IDPLAYER = @IdPlayer", new { IdPlayer }).FirstOrDefault();
                 //PlayerDtostream.Access = true;
 
@@ -1794,7 +1810,7 @@ namespace WolfApiCore.DbTier
 
             try
             {
-                using (var connection = new SqlConnection(moverConnString))
+                using (var connection = new SqlConnection(MoverConnString))
                 {
                     wagers = connection.Query<MoverWagerHeaderDto>(@"SELECT IdLiveWager, IdPlayer, PlacedDateTime, IdWagerType, RiskAmount, WinAmount, Description, Result, Graded, Ip, NumDetails, DgsIdWager FROM tb_MGL_WagerHeader WHERE GRADED = 0 and DgsIdWager <> -1").ToList();
                 }
@@ -1813,7 +1829,7 @@ namespace WolfApiCore.DbTier
 
             try
             {
-                using (var connection = new SqlConnection(moverConnString))
+                using (var connection = new SqlConnection(MoverConnString))
                 {
                     wagers = connection.Query<MoverWagerDetailDto>(@"SELECT IdLiveWagerDetail, IdLiveWager, FixtureId, MarketId, LineId, BaseLine, Line, Odds, Price, PickTeam, Result, CompleteDescription, RiskAmount, WinAmount FROM TB_MGL_WAGERDETAIL WHERE IDLIVEWAGER=" + idLiveWager).ToList();
                 }
@@ -1832,7 +1848,7 @@ namespace WolfApiCore.DbTier
 
             try
             {
-                using (var connection = new SqlConnection(dgsConnString))
+                using (var connection = new SqlConnection(DgsConnString))
                 {
                     playerInfo = connection.Query<PlayerInfo>(@"SELECT PL.Player, Ag.Agent, PL.IdPlayer, AG.IdAgent
                                                                         FROM
@@ -1855,7 +1871,7 @@ namespace WolfApiCore.DbTier
             int result = 0;
             try
             {
-                using (var connection = new SqlConnection(moverConnString))
+                using (var connection = new SqlConnection(MoverConnString))
                 {
                     var parameters = new
                     {
@@ -1996,44 +2012,59 @@ namespace WolfApiCore.DbTier
 
         }//end test
 
+        private string GetShortName(string teamName) 
+        {
+            if(string.IsNullOrEmpty(teamName))
+                return "";
+
+            var teamWords = teamName.Split(" ");
+
+            if (teamWords.Length == 1)
+                return teamName;
+
+            string abbreviations = "";
+            for (int i = 0; i < teamWords.Length - 1; i++)
+            {
+                abbreviations += teamWords[i].ToUpper()[0];
+            }
+
+            return abbreviations + " " + teamWords[teamWords.Length - 1];
+        }
+
         private string FormatWagerDetailCompleteDescription(WagerDetailCompleteDescriptionModel wagerDetailDescription) {
             
             string[] leagueNameExceptions = { "E-Sports" };
-            string completeDescription;
             
             string line = wagerDetailDescription.Line.IsNullOrEmpty() ? "" : $"{wagerDetailDescription.Line}" ;
-            string player = wagerDetailDescription.BaseLine.IsNullOrEmpty() ? "" : $"{wagerDetailDescription.BaseLine}" ;
+            string baseLine = wagerDetailDescription.BaseLine.IsNullOrEmpty() ? "" : $"{wagerDetailDescription.BaseLine}" ;                        
 
-            if ( line.Replace("-", "").Equals(player.Replace("-", "")) )
-            {
-                player = "";
-            } else {
-                player += " ";
-            }
+            if (line.Replace("-", "").Equals(baseLine.Replace("-", "")) )            
+                baseLine = "";
+            else 
+                baseLine = " "+baseLine;            
 
             string[] lineValues = line.Split(' ');
-            string firstLine = lineValues[0];
+            string leftValue = lineValues[0];
 
-            if ( !double.TryParse(firstLine, out double parsedLine) )
-            {
-                parsedLine = 0;
-            }
+            if (!double.TryParse(leftValue, out double doubleValue))            
+                doubleValue = 0;
 
-            string newLine = parsedLine > 0 ? $"+{line}" : $"{line}";
+
+            var isSpread = SpreadMarkets.Contains(wagerDetailDescription.MarketId);
+
+            if (doubleValue > 0 && isSpread)
+                line = $"+{line}";
 
             string odds = wagerDetailDescription.Odds1 > 0 ? $"+{wagerDetailDescription.Odds1}" : $"{wagerDetailDescription.Odds1}";
 
-            string[]? homeTeamWords = wagerDetailDescription?.HomeTeam?.Split(' ');
-            string[]? visitorTeamWords = wagerDetailDescription?.VisitorTeam?.Split(' ');
 
-            string lastHomeTeamName = homeTeamWords?.Length == 1 ? homeTeamWords[0] : homeTeamWords![ homeTeamWords.Length - 2] + " " + homeTeamWords[ homeTeamWords.Length - 1];
-            string lastVisitorTeamName = visitorTeamWords?.Length == 1 ? visitorTeamWords[0] : visitorTeamWords![ visitorTeamWords.Length - 2] + " " + visitorTeamWords[ visitorTeamWords.Length - 1];
+            string homeTeam = GetShortName(wagerDetailDescription?.HomeTeam);
+            string visitorTeam = GetShortName(wagerDetailDescription?.VisitorTeam);
 
             bool isTournament = IsSportWithTournament(wagerDetailDescription!.FixtureId!);
+            
 
-            completeDescription = $"{wagerDetailDescription!.MarketName}: {player} {wagerDetailDescription.Name} {newLine} {odds} [{ ( !isTournament ? $"{lastHomeTeamName} vs {lastVisitorTeamName}" : wagerDetailDescription.LeagueName!) }/{ ( !leagueNameExceptions.Contains(wagerDetailDescription!.SportName) ? wagerDetailDescription!.SportName : $"{wagerDetailDescription!.SportName} {wagerDetailDescription.LeagueName}") }]";
-
-            return completeDescription;
+            return $"{wagerDetailDescription!.MarketName}:{baseLine} {wagerDetailDescription.Name} {line} {odds} [{(!isTournament ? $"{homeTeam} vs {visitorTeam}" : wagerDetailDescription.LeagueName!)}/{(!leagueNameExceptions.Contains(wagerDetailDescription!.SportName) ? wagerDetailDescription!.SportName : $"{wagerDetailDescription!.SportName} {wagerDetailDescription.LeagueName}")}]";
         }
 
         public bool IsSportWithTournament(int fixtureId)
@@ -2042,7 +2073,7 @@ namespace WolfApiCore.DbTier
 
             try
             {
-                using (var connection = new SqlConnection(moverConnString))
+                using (var connection = new SqlConnection(MoverConnString))
                 {
                     var procedure = "[sp_MGL_IsSportWithTournament]";
 

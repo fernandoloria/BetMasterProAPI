@@ -5,6 +5,7 @@ namespace WolfApiCore.Models
         public string? SportName { get; set; }
         public string? HomeTeam { get; set; }
         public string? VisitorTeam { get; set; }
+        public int MarketId { get; set; }
         public string? MarketName { get; set; }
         public string? Name { get; set; }
         public string? BaseLine { get; set; }
