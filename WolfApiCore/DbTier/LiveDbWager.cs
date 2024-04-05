@@ -57,16 +57,8 @@ namespace WolfApiCore.DbTier
                     var snapshotItem = lsportSnapshot.FirstOrDefault(s => s.BetId == Convert.ToInt64(item.IdL1));
                     if (null != snapshotItem)
                     {
-                        var dbProp = ValidateBetSlipItem(item, snapshotItem.BetInfo, betslip.AcceptLineChange, fixture.FixtureId, betslip.IdPlayer, item.MarketId);
-                        item.Odds1 = dbProp.Odds1;
-                        item.Price = dbProp.Price;
-                        item.Line1 = dbProp.Line1;
-                        item.BaseLine = dbProp.BaseLine;
+                        var dbProp = ValidateBetSlipItem(item, snapshotItem.BetInfo, betslip.AcceptLineChange, fixture.FixtureId, betslip.IdPlayer, item.MarketId);                       
 
-                        item.IdL1 = dbProp.IdL1;                                              
-
-                        item.BsMessage = dbProp.BsMessage;
-                        item.BsBetResult = dbProp.BsBetResult;
                         if (dbProp.StatusForWager != 9 && dbProp.StatusForWager != 10)
                             validForParlay = false;
                     }
@@ -350,7 +342,7 @@ namespace WolfApiCore.DbTier
                         else
                         {
                             //Si la linea cambio pero el usuario aceptó el cambio de linea...
-                            if (acceptLineChanged)
+                            /*if (acceptLineChanged)
                             {
                                 betslipItem.StatusForWager = 9;  
                                 betslipItem.Odds1 = int.Parse(snapshotItem.PriceUS);
@@ -359,7 +351,7 @@ namespace WolfApiCore.DbTier
                                 betslipItem.BaseLine = snapshotItem.BaseLine;
                             }
                             //linea cambio y el usuario no ha aceptado el cambio de linea
-                            else
+                            else*/
                             {                            
                                 betslipItem.StatusForWager = 5; 
                                 betslipItem.Odds1 = int.Parse(snapshotItem.PriceUS);
@@ -368,7 +360,7 @@ namespace WolfApiCore.DbTier
                                 betslipItem.BaseLine = snapshotItem.BaseLine;
                                 betslipItem.BsBetResult = -51;
                                 betslipItem.BsMessage = "Line Change Detected.";                                
-                                betslipItem.IdL2 = (null != snapshotItem.AlternateId) ? snapshotItem.AlternateId.ToString() : "";
+                                betslipItem.IdL2 = (null != snapshotItem.AlternateId) ? snapshotItem.AlternateId.ToString() : ""; 
                             }
                         }
                     }
@@ -1931,11 +1923,11 @@ namespace WolfApiCore.DbTier
 
                                             // solamente si hay una linea activa
                                             if (null != altList && altList.Count() == 1)
-                                            {
-                                                item.BetInfo = altList.FirstOrDefault();
+                                            {                                                
+                                                item.BetInfo = altList.FirstOrDefault();  //nueva linea
 
-                                                //RLM:XXX Revisar con Axel
-                                                item.BetInfo.AlternateId = item.BetId;     //OJO: aqui esta quedando el id de la linea q se cerro...
+                                                // Dejamos en AlternateId el Id de la nueva linea
+                                                item.BetInfo.AlternateId = item.BetInfo.Id;  //nueva Id de linea
                                             }
                                         }
                                     }
