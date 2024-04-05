@@ -1,14 +1,10 @@
-﻿using System.Diagnostics;
-using System.Reflection.Metadata.Ecma335;
-using System.Security.Principal;
-
-namespace WolfApiCore.Models
+﻿namespace WolfApiCore.Models
 {
     public class LSportGameDto
     {
         //  public int MsgSeq { get; set; }
         //  public string? MsgGuid { get; set; }
-        public Int32 FixtureId { get; set; }
+        public int FixtureId { get; set; }
         //public int Status { get; set; }
         public int StatusId { get; set; }
         public string? Status_Description { get; set; }
@@ -22,7 +18,7 @@ namespace WolfApiCore.Models
         public int VisitorScore { get; set; }
         public int HomeScore { get; set; }
         public DateTime ScoreCreatedDateTime { get; set; }
-        public Int32 SportId { get; set; }
+        public int SportId { get; set; }
         public string SportName { get; set; }
         public int LeagueId { get; set; }
         public string LeagueName { get; set; }
@@ -338,6 +334,11 @@ namespace WolfApiCore.Models
         public int SportId { get; set; }
         public int LocationId { get; set; }
         public int LeagueId { get; set; }
+    }
+
+    public class FixtureFilter: FixtureDb
+    {
+        public DateTime StartDate { get; set; }
     }
 
     public class FixtureParticipanTable
