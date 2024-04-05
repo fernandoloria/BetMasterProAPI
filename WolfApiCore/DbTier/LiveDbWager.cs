@@ -1777,6 +1777,30 @@ namespace WolfApiCore.DbTier
             return PlayerDtostream;
         }
 
+        public List<LSportGameDto> GetFixturesByDate(FixtureFilter filter)
+        {
+            List<LSportGameDto> fixtures = new List<LSportGameDto>();
+            try
+            {
+                using (var connection = new SqlConnection(MoverConnString))
+                {
+                    var parameters = new
+                    {
+                        eventDate = filter.StartDate.Date,
+                        sportId = filter.SportId,
+                        leagueId = filter.LeagueId
+                    };
+
+                    fixtures = connection.Query<LSportGameDto>(@"[dbo].[sp_MGL_GetFixtures]", param: parameters, null,false).ToList();
+                }
+            }
+            catch (Exception ex)
+            {
+                //   _ = new Misc().WriteErrorLog("MoverDbClass", "GetPendingWagerHeader", ex.Message, ex.StackTrace);
+            }
+
+            return fixtures;
+        }
 
         public List<MoverWagerHeaderDto> GetPendingLiveWagers()
         {
