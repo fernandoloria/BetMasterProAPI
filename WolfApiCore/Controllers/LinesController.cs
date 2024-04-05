@@ -66,6 +66,11 @@ namespace WolfApiCore.Controllers
             return new LiveDbWager().GetPlayerDataStreaming(idplayer);
         }
 
+        [HttpGet("GetFixtures")]
+        public List<MoverWagerHeaderDto> GetPendingLiveWagers()
+        {
+            return new LiveDbWager().GetPendingLiveWagers();
+        }
 
         [HttpGet("GetPendingLiveWagers")]
         public List<MoverWagerHeaderDto> GetPendingLiveWagers()
