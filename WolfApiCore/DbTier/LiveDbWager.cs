@@ -47,22 +47,26 @@ namespace WolfApiCore.DbTier
                 }
             }
 
+
+            // ojo en lsportSnapShot retorna un checkList modificado (por el line closed de linea... if any!)
             var lsportSnapshot = GetLSportsBetsInfo(cl);
             foreach (var fixture in betslip.Events)
             {
-                foreach (var betSlipItem in fixture.Selections)
+                foreach (var item in fixture.Selections)
                 {
-                    var snapshotItem = lsportSnapshot.FirstOrDefault(s => s.BetId == Convert.ToInt64(betSlipItem.IdL1));
+                    var snapshotItem = lsportSnapshot.FirstOrDefault(s => s.BetId == Convert.ToInt64(item.IdL1));
                     if (null != snapshotItem)
                     {
-                        var dbProp = ValidateBetSlipItem(betSlipItem, snapshotItem.BetInfo, betslip.AcceptLineChange, fixture.FixtureId, betslip.IdPlayer, betSlipItem.MarketId);
-                        betSlipItem.Odds1 = dbProp.Odds1;
-                        betSlipItem.Price = dbProp.Price;
-                        betSlipItem.Line1 = dbProp.Line1;
-                        betSlipItem.BaseLine = dbProp.BaseLine;
-                        betSlipItem.IdL1 = dbProp.IdL1;
-                        betSlipItem.BsMessage = dbProp.BsMessage;
-                        betSlipItem.BsBetResult = dbProp.BsBetResult;
+                        var dbProp = ValidateBetSlipItem(item, snapshotItem.BetInfo, betslip.AcceptLineChange, fixture.FixtureId, betslip.IdPlayer, item.MarketId);
+                        item.Odds1 = dbProp.Odds1;
+                        item.Price = dbProp.Price;
+                        item.Line1 = dbProp.Line1;
+                        item.BaseLine = dbProp.BaseLine;
+
+                        item.IdL1 = dbProp.IdL1;                                              
+
+                        item.BsMessage = dbProp.BsMessage;
+                        item.BsBetResult = dbProp.BsBetResult;
                         if (dbProp.StatusForWager != 9 && dbProp.StatusForWager != 10)
                             validForParlay = false;
                     }
@@ -73,17 +77,17 @@ namespace WolfApiCore.DbTier
             //INSERT STRAIGHTS
             foreach (var fixture in betslip.Events)
             {
-                foreach (var selection in fixture.Selections)
+                foreach (var item in fixture.Selections)
                 {
-                    if (selection.BsWinAmount != null)
+                    if (item.BsWinAmount != null)
                     {
-                        if (selection.BsWinAmount > 0)
+                        if (item.BsWinAmount > 0)
                         {
-                            if ((int)selection.BsRiskAmount >= 0 && (selection.StatusForWager is 10 or 9))
+                            if ((int)item.BsRiskAmount >= 0 && (item.StatusForWager is 10 or 9))
                             {
                                 CreateStraightWagerModel createStraightWagerModel = new CreateStraightWagerModel
                                 {
-                                    PropSelected = selection,
+                                    PropSelected = item,
                                     FixtureId = fixture.FixtureId,
                                     IdPlayer = betslip.IdPlayer,
                                     HomeTeam = fixture.HomeTeam,
@@ -95,13 +99,13 @@ namespace WolfApiCore.DbTier
                                 };
 
                                 var betResult = CreateStraightWager(createStraightWagerModel);
-                                selection.StatusForWager = betResult.StatusForWager;
-                                selection.BsBetResult = betResult.BsBetResult;
-                                selection.BsTicketNumber = betResult.BsTicketNumber;
+                                item.StatusForWager = betResult.StatusForWager;
+                                item.BsBetResult = betResult.BsBetResult;
+                                item.BsTicketNumber = betResult.BsTicketNumber;
 
-                                if (selection.BsBetResult == -1 )
+                                if (item.BsBetResult == -1 )
                                 {
-                                    selection.BsMessage = "Wager Rejected";
+                                    item.BsMessage = "Wager Rejected";
                                 }
                                 
                             }
@@ -341,27 +345,29 @@ namespace WolfApiCore.DbTier
                             snapshotItem.Line == betslipItem.Line1)
                         {
                             betslipItem.StatusForWager = 10;  //ready for wager
-                            betslipItem.BaseLine = snapshotItem.BaseLine;
+                            betslipItem.BaseLine = snapshotItem.BaseLine;                            
                         }
                         else
                         {
+                            //Si la linea cambio pero el usuario aceptó el cambio de linea...
                             if (acceptLineChanged)
                             {
-                                betslipItem.StatusForWager = 9;  //Line changed but player accept line changes
+                                betslipItem.StatusForWager = 9;  
                                 betslipItem.Odds1 = int.Parse(snapshotItem.PriceUS);
                                 betslipItem.Price = Convert.ToDecimal(snapshotItem.Price);
                                 betslipItem.Line1 = snapshotItem.Line;
                                 betslipItem.BaseLine = snapshotItem.BaseLine;
                             }
+                            //linea cambio y el usuario no ha aceptado el cambio de linea
                             else
-                            {
-                                betslipItem.StatusForWager = 5; //linea cambio y player no acepta cambio de linea
+                            {                            
+                                betslipItem.StatusForWager = 5; 
                                 betslipItem.Odds1 = int.Parse(snapshotItem.PriceUS);
                                 betslipItem.Price = Convert.ToDecimal(snapshotItem.Price);
                                 betslipItem.Line1 = snapshotItem.Line;
                                 betslipItem.BaseLine = snapshotItem.BaseLine;
                                 betslipItem.BsBetResult = -51;
-                                betslipItem.BsMessage = "Line Change Detected.";
+                                betslipItem.BsMessage = "Line Change Detected.";                                
                                 betslipItem.IdL2 = (null != snapshotItem.AlternateId) ? snapshotItem.AlternateId.ToString() : "";
                             }
                         }
@@ -380,19 +386,19 @@ namespace WolfApiCore.DbTier
                         {
                             betslipItem.StatusForWager = 5;
                             betslipItem.BsBetResult = -50;
-                            betslipItem.BsMessage = $"Ticket exceeds Min Price. (Min = {minPriceAmount:F0})";
+                            betslipItem.BsMessage = $"Ticket exceeds Min Price. (Min {minPriceAmount:F0})";
                         }                            
                         else if (betslipItem.Odds1 > maxPriceAmount)
                         {
                             betslipItem.StatusForWager = 5;
                             betslipItem.BsBetResult = -50;
-                            betslipItem.BsMessage = $"Ticket exceeds Max Price. (Max = {maxPriceAmount:F0})";
+                            betslipItem.BsMessage = $"Ticket exceeds Max Price. (Max {maxPriceAmount:F0})";
                         }
                         else if (totalAmountValue > totAmtPerGame)
                         {
                             betslipItem.StatusForWager = 5;
                             betslipItem.BsBetResult = -50;
-                            betslipItem.BsMessage = $"Ticket exceeds Max Total Amount per game. (Max = {totAmtPerGame:F0})";
+                            betslipItem.BsMessage = $"Ticket exceeds Max Total Amount per game. (Max {totAmtPerGame:F0})";
                         }
 
                         //Remarks: 03/24/2024 Donovan requested to Check Min a
@@ -401,14 +407,14 @@ namespace WolfApiCore.DbTier
                         {
                             betslipItem.StatusForWager = 5; 
                             betslipItem.BsBetResult = -50;
-                            betslipItem.BsMessage = $"Less than Min Wager. (Min = {minBetAmount:F0})";
+                            betslipItem.BsMessage = $"Less than Min Wager. (Min {minBetAmount:F0})";
                         }
                         
                         else if (betAmount > maxBetAmount)
                         {
                             betslipItem.StatusForWager = 5;
                             betslipItem.BsBetResult = -50;
-                            betslipItem.BsMessage = $"Exceeded Max Wager. (Max = {maxBetAmount:F0})";
+                            betslipItem.BsMessage = $"Exceeded Max Wager. (Max {maxBetAmount:F0})";
                         }               
                     
                         // Comparar el WinAmount con el MaxPayot
@@ -416,7 +422,7 @@ namespace WolfApiCore.DbTier
                         {
                             betslipItem.StatusForWager = 5;
                             betslipItem.BsBetResult = -50;
-                            betslipItem.BsMessage = $"Exceeded Max Payout. (Max = {maxPayout:F0})";
+                            betslipItem.BsMessage = $"Exceeded Max Payout. (Max {maxPayout:F0})";
                         }
                     }
                 }
@@ -1899,12 +1905,12 @@ namespace WolfApiCore.DbTier
 
         public List<CheckListLines> GetLSportsBetsInfo(List<CheckListLines> checkList)
         {
-            var reply = new RestApiClass().GetLSportsSnapshot(checkList, "1245", "administracion@corporacionzircon.com", "J83@d784cE");
-            if (reply != null)
+            var snapShot = new RestApiClass().GetLSportsSnapshot(checkList, "1245", "administracion@corporacionzircon.com", "J83@d784cE");
+            if (snapShot != null)
             {
-                if (reply.Body != null && reply.Body.Count > 0)
+                if (snapShot.Body != null && snapShot.Body.Count > 0)
                 {
-                    foreach (var body in reply.Body)
+                    foreach (var body in snapShot.Body)
                     {
                         if(body != null)
                         {
@@ -1912,17 +1918,24 @@ namespace WolfApiCore.DbTier
                             {
                                 if (item.FixtureId == body.FixtureId && body.Markets != null)
                                 {
-                                    var betMarket = body.Markets.FirstOrDefault(x => x.Id == item.MarketId);
-                                    if (betMarket != null && betMarket.Bets != null && betMarket.Bets.Count() > 0)
+                                    var market = body.Markets.FirstOrDefault(m => m.Id == item.MarketId);
+                                    if (market != null && market.Bets != null && market.Bets.Count() > 0)
                                     {
-                                        item.BetInfo = betMarket.Bets.FirstOrDefault(x => x.Id.ToString() == item.BetId.ToString());
+                                        item.BetInfo = market.Bets.FirstOrDefault(b => b.Id.ToString() == item.BetId.ToString());
+
+                                        // Si la linea no esta abierta...
                                         if (null != item.BetInfo && item.BetInfo.Status != 1)
                                         {
-                                            var altList = betMarket.Bets.Where(x => x.Name == item.BetInfo.Name && x.Status == 1);
+                                            // buscar una linea de la misma apuesta q este Open
+                                            var altList = market.Bets.Where(b => b.Name == item.BetInfo.Name && b.Status == 1);
+
+                                            // solamente si hay una linea activa
                                             if (null != altList && altList.Count() == 1)
                                             {
                                                 item.BetInfo = altList.FirstOrDefault();
-                                                item.BetInfo.AlternateId = item.BetId;
+
+                                                //RLM:XXX Revisar con Axel
+                                                item.BetInfo.AlternateId = item.BetId;     //OJO: aqui esta quedando el id de la linea q se cerro...
                                             }
                                         }
                                     }
