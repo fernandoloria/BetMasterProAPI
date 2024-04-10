@@ -303,6 +303,10 @@
         public int DgsIdWager { get; set; }
         public string Player { get; set; }
         public string Agent { get; set; }
+
+        public string SportName { get; set; }
+
+        public string LeagueName { get; set; }
         public List<MoverWagerDetailDto> Details { get; set; }
     }
 
