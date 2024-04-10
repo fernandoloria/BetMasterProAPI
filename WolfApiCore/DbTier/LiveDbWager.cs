@@ -1812,10 +1812,12 @@ namespace WolfApiCore.DbTier
                 foreach (var wager in wagers)
                 {
                     wager.Details = GetWagerDetails(wager.IdLiveWager);
-                    var playerdetails = GetPlayerInfoForLiveWagers(wager.IdPlayer);
 
-                    wager.Player = playerdetails.Player;
-                    wager.Agent = playerdetails.Agent;
+                    /* RLM:2024.04.09, ya esto no es necearia, se carga en el header directamente                      
+                        var playerdetails = GetPlayerInfoForLiveWagers(wager.IdPlayer);
+                        wager.Player = playerdetails.Player;
+                        wager.Agent = playerdetails.Agent;
+                    */
                 }
             }
             catch (Exception)
@@ -1834,7 +1836,10 @@ namespace WolfApiCore.DbTier
             {
                 using (var connection = new SqlConnection(MoverConnString))
                 {
-                    wagers = connection.Query<MoverWagerHeaderDto>(@"SELECT IdLiveWager, IdPlayer, PlacedDateTime, IdWagerType, RiskAmount, WinAmount, Description, Result, Graded, Ip, NumDetails, DgsIdWager FROM tb_MGL_WagerHeader WHERE GRADED = 0 and DgsIdWager <> -1").ToList();
+                    //RLM:2024.04.09, se mueve a un sp, y se modifica el SP para q solo tanga juegos en status final, adicionalmente ahora retorna el nombre del agente y del jugador en la misma consulta                    
+                    //wagers = connection.Query<MoverWagerHeaderDto>(@"SELECT IdLiveWager, IdPlayer, PlacedDateTime, IdWagerType, RiskAmount, WinAmount, Description, Result, Graded, Ip, NumDetails, DgsIdWager FROM tb_MGL_WagerHeader WHERE GRADED = 0 and DgsIdWager <> -1").ToList();
+                    wagers = connection.Query<MoverWagerHeaderDto>("sp_MGL_GetPendingBetsHeaders", commandType: CommandType.StoredProcedure).ToList();
+                    
                 }
             }
             catch (Exception ex)
@@ -1853,7 +1858,14 @@ namespace WolfApiCore.DbTier
             {
                 using (var connection = new SqlConnection(MoverConnString))
                 {
-                    wagers = connection.Query<MoverWagerDetailDto>(@"SELECT IdLiveWagerDetail, IdLiveWager, FixtureId, MarketId, LineId, BaseLine, Line, Odds, Price, PickTeam, Result, CompleteDescription, RiskAmount, WinAmount FROM TB_MGL_WAGERDETAIL WHERE IDLIVEWAGER=" + idLiveWager).ToList();
+                    //RLM:2024.04.09, se mueve a un sp
+                    //wagers = connection.Query<MoverWagerDetailDto>(@"SELECT IdLiveWagerDetail, IdLiveWager, FixtureId, MarketId, LineId, BaseLine, Line, Odds, Price, PickTeam, Result, CompleteDescription, RiskAmount, WinAmount FROM TB_MGL_WAGERDETAIL WHERE IDLIVEWAGER=" + idLiveWager).ToList();
+
+                    var parameters = new
+                    {
+                        idLiveWager = idLiveWager
+                    };
+                    wagers = connection.Query<MoverWagerDetailDto>("sp_MGL_GetPendingBetsDetails", parameters, commandType: CommandType.StoredProcedure).ToList();
                 }
             }
             catch (Exception ex)
