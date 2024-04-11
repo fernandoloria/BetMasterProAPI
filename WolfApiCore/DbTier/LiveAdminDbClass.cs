@@ -3,18 +3,15 @@ using Dapper;
 using System.Data;
 using static WolfApiCore.Models.AdminModels;
 using WolfApiCore.Models;
-using System.Collections.Generic;
 using WolfApiCore.Utilities;
-using System.Text.Json.Serialization;
 using System.Text.Json;
-using System.Xml.Linq;
 
 namespace WolfApiCore.DbTier
 {
     public class LiveAdminDbClass
     {
-        private readonly string dgsConnString = "Data Source=192.168.11.36;Initial Catalog=DGSDATA;Persist Security Info=True;User ID=Payments;Password=p@yM3nts2701;TrustServerCertificate=True";
-        private readonly string moverConnString = "Data Source=192.168.11.36;Initial Catalog=mover;Persist Security Info=True;User ID=live;Password=d_Ez*gIb8v7NogU;TrustServerCertificate=True";
+        private readonly string dgsConnString = "Data Source=192.168.11.29;Initial Catalog=DGSDATA;Persist Security Info=True;User ID=Payments;Password=p@yM3nts2701;TrustServerCertificate=True";
+        private readonly string moverConnString = "Data Source=192.168.11.29;Initial Catalog=mover;Persist Security Info=True;User ID=live;Password=d_Ez*gIb8v7NogU;TrustServerCertificate=True";
 
         public AgentLoginResp AdminLogin(AgentLoginReq LoginReq)
         {
@@ -1809,11 +1806,32 @@ namespace WolfApiCore.DbTier
             return userInfo;
         }
 
+        public List<FixtureDto> GetFixturesByDate(FixtureFilter filter)
+        {
+            List<FixtureDto> fixtures = new List<FixtureDto>();
+            try
+            {
+                using (var connection = new SqlConnection(moverConnString))
+                {
+                    var parameters = new
+                    {
+                        eventDate = filter.StartDate.Date,
+                        sportId = filter.SportId,
+                        leagueId = filter.LeagueId,
+                        locationId = filter.LocationId,
+                        statusId = filter.StatusId
+                    };
 
+                    fixtures = connection.Query<FixtureDto>(@"[dbo].[sp_MGL_GetFixtures]", param: parameters, null, false).ToList();
+                }
+            }
+            catch// (Exception ex)
+            {
+                //_ = new Misc().WriteErrorLog("MoverDbClass", "GetPendingWagerHeader", ex.Message, ex.StackTrace);
+            }
 
-
-
-
+            return fixtures;
+        }
 
     }//end class
 }//end namespace

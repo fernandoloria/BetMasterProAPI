@@ -171,9 +171,10 @@ namespace WolfApiCore.Controllers
             return new LiveAdminDbClass().DgsUserLogin(credentials);
         }
 
-
-
-
-
+        [HttpPost("GetFixturesByDate")]
+        public List<FixtureDto> GetFixturesByDate(FixtureFilter request)
+        {
+            return new LiveAdminDbClass().GetFixturesByDate(request);
+        }
     }//end controller
 }//end namespace
