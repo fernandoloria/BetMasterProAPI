@@ -26,6 +26,8 @@ namespace WolfApiCore.DbTier
             2395, 2397, 2408, 2409, 2410, 2411, 2675, 2732
         };
 
+        private static readonly string[] leagueNameExceptions = { "E-Sports" };
+
 
         public LSport_BetSlipObj ValidateSelectionsForWagers(LSport_BetSlipObj betslip)
         {
@@ -829,6 +831,23 @@ namespace WolfApiCore.DbTier
             return resp;
         }
 
+        private string GetFixtureName(WagerDetailCompleteDescriptionModel detailDescription) 
+        {
+            string homeTeam = GetShortName(detailDescription?.HomeTeam);
+            string visitorTeam = GetShortName(detailDescription?.VisitorTeam);
+
+            bool isTournament = IsSportWithTournament(detailDescription!.FixtureId!);
+
+
+            return $"{(isTournament? detailDescription.LeagueName! : $"{homeTeam} vs {visitorTeam}")}"; 
+        }
+
+        private string GetSportName(WagerDetailCompleteDescriptionModel detailDescription) 
+        {
+            return $"{(!leagueNameExceptions.Contains(detailDescription!.SportName) ? detailDescription!.SportName : $"{detailDescription!.SportName} {detailDescription.LeagueName}")}";
+        }
+
+
         public LSport_EventPropDto CreateStraightWager(CreateStraightWagerModel createStraightWagerModel)
         {
             try
@@ -871,16 +890,20 @@ namespace WolfApiCore.DbTier
                         FixtureId = (int)createStraightWagerModel.FixtureId!
                     };
 
-                    string Description /*255*/ = "VegasLive #" + idlivewager + " [" + createStraightWagerModel.FixtureId + "] " + createStraightWagerModel.SportName + " / " + createStraightWagerModel.VisitorTeam + " @ " + createStraightWagerModel.HomeTeam;
-                    string CompleteDescription/*100*/ = FormatWagerDetailCompleteDescription(wagerDetailCompleteDescriptionModel);
 
-                   var idlivewagerDetail = InsertLiveWagerDetail(idlivewager, (int)createStraightWagerModel.FixtureId!, createStraightWagerModel.PropSelected.MarketId, createStraightWagerModel.PropSelected.IdL1!, createStraightWagerModel.PropSelected.BaseLine!, createStraightWagerModel.PropSelected.Line1!, (int)createStraightWagerModel.PropSelected.Odds1!, (decimal)createStraightWagerModel.PropSelected.Price!, createStraightWagerModel.PropSelected.Name!, CompleteDescription, riskAmount, winAmount);
+
+                    string FixtureName = GetFixtureName(wagerDetailCompleteDescriptionModel);
+                    string SportName = GetSportName(wagerDetailCompleteDescriptionModel);
+                    string CompleteDescription = FormatWagerDetailCompleteDescription(wagerDetailCompleteDescriptionModel, FixtureName, SportName);
+
+                    var idlivewagerDetail = InsertLiveWagerDetail(idlivewager, (int)createStraightWagerModel.FixtureId!, createStraightWagerModel.PropSelected.MarketId, createStraightWagerModel.PropSelected.IdL1!, createStraightWagerModel.PropSelected.BaseLine!, createStraightWagerModel.PropSelected.Line1!, (int)createStraightWagerModel.PropSelected.Odds1!, (decimal)createStraightWagerModel.PropSelected.Price!, createStraightWagerModel.PropSelected.Name!, CompleteDescription, riskAmount, winAmount);
 
                    
                     if(idlivewagerDetail > 0)
                     {
 
-                        var idDgsWager = InsertDgsWagerHeader((int)createStraightWagerModel.IdPlayer, riskAmount, winAmount, Description, Description, "10.0.0.0");
+                        string description = $"VegasLive #{idlivewager} [{createStraightWagerModel.FixtureId}] {SportName} / {FixtureName}";
+                        var idDgsWager = InsertDgsWagerHeader((int)createStraightWagerModel.IdPlayer, riskAmount, winAmount, description, "10.0.0.0");
 
                         if (idDgsWager > 0)
                         {
@@ -949,7 +972,7 @@ namespace WolfApiCore.DbTier
                     }
                 }
 
-                int idlivewager = InsertLiveWagerHeader(betslipObj.IdPlayer, 1, riskAmount, winAmount, "Parlay", "10.1.1.1", numberEvents, 1, (bool)betslipObj.IsMobile!);
+                int idlivewager = InsertLiveWagerHeader(betslipObj.IdPlayer, 2, riskAmount, winAmount, "Parlay", "10.1.1.1", numberEvents, 1, (bool)betslipObj.IsMobile!);
 
                 if (idlivewager > 0)
                 {
@@ -961,7 +984,7 @@ namespace WolfApiCore.DbTier
                     }
                     sports += ")";
 
-                    string Description = "VegasLive #" + idlivewager + " PARLAY " + numberEvents + " TEAMS";
+                    string Description = $"VegasLive #{ idlivewager } PARLAY { numberEvents} TEAMS";
  
                     foreach (var item in betslipObj.Events)
                     {
@@ -982,7 +1005,10 @@ namespace WolfApiCore.DbTier
                                 FixtureId = item.FixtureId
                             };
 
-                            string itemDescription = FormatWagerDetailCompleteDescription(wagerDetailCompleteDescriptionModel);
+                            string FixtureName = GetFixtureName(wagerDetailCompleteDescriptionModel);
+                            string SportName = GetSportName(wagerDetailCompleteDescriptionModel);
+                            string itemDescription = FormatWagerDetailCompleteDescription(wagerDetailCompleteDescriptionModel, FixtureName, SportName);
+
                             descriptionList.Add(itemDescription);
 
                             ListDetailWager.Add(InsertLiveWagerDetail(idlivewager, item.FixtureId, sel.MarketId, sel.IdL1, sel.BaseLine, sel.Line1, (int)sel.Odds1, (decimal)sel.Price, sel.Name, itemDescription, riskAmount, winAmount));
@@ -995,7 +1021,7 @@ namespace WolfApiCore.DbTier
                     if (ListDetailWager.Count == numberEvents && ListDetailWager.All(x => x > 1))
                     {
 
-                        var idDgsWager = InsertDgsWagerHeader(betslipObj.IdPlayer, riskAmount, winAmount, Description, Description, "10.0.0.0");
+                        var idDgsWager = InsertDgsWagerHeader(betslipObj.IdPlayer, riskAmount, winAmount, Description, "10.0.0.0");
 
                         if (idDgsWager > 0)
                         {
@@ -1004,7 +1030,8 @@ namespace WolfApiCore.DbTier
                                 InsertDgsWagerDetail(idDgsWager, item, item);
                             }
 
-                                                    //actualizamos el idwager en la tabla auxiliar
+
+                            //actualizamos el idwager en la tabla auxiliar
                             UpdateLiveWagerHeader(idlivewager, idDgsWager);
 
                             //  propSelected.BsTicketNumber = idlivewager + "-" + idDgsWager;
@@ -1488,7 +1515,7 @@ namespace WolfApiCore.DbTier
             return idWt;
         }
 
-        public int InsertDgsWagerHeader(int IdPlayer, decimal RiskAmount, decimal OriginalWinAmount, string CompleteDescription/*100*/, string Description/*255*/, string Ip)
+        public int InsertDgsWagerHeader(int IdPlayer, decimal RiskAmount, decimal OriginalWinAmount, string Description, string Ip)
         {
             int resp = 0;
             try
@@ -1501,8 +1528,8 @@ namespace WolfApiCore.DbTier
                         IdPlayer = IdPlayer,
                         RiskAmount = RiskAmount,
                         OriginalWinAmount = OriginalWinAmount,
-                        CompleteDescription = CompleteDescription.Length >= 100 ? CompleteDescription.Substring(0, 99) : CompleteDescription,
-                        Description = Description,
+                        CompleteDescription = Description.Length >= 100 ? Description.Substring(0, 99) : Description, //100
+                        Description = Description.Length >= 255 ? Description.Substring(0, 254) : Description, // 255
                         IPAddress = Ip
 
                     };
@@ -2033,22 +2060,36 @@ namespace WolfApiCore.DbTier
 
             var teamWords = teamName.Split(" ");
 
-            if (teamWords.Length == 1)
+            var N = teamWords.Length;
+
+            if (N == 1)
                 return teamName;
 
+            int k = N - 1;
+            while (k > 0)
+            {
+                if (teamWords[k].Length > 3)
+                    break;
+                else
+                    k--;
+            }
+
             string abbreviations = "";
-            for (int i = 0; i < teamWords.Length - 1; i++)
+            for (int i = 0; i < k; i++)
             {
                 abbreviations += teamWords[i].ToUpper()[0];
             }
 
-            return abbreviations + " " + teamWords[teamWords.Length - 1];
+            for (int i = k; i < N; i++)
+            {
+                abbreviations = abbreviations+" "+teamWords[i];
+            }
+
+            return abbreviations;
         }
 
-        private string FormatWagerDetailCompleteDescription(WagerDetailCompleteDescriptionModel wagerDetailDescription) {
-            
-            string[] leagueNameExceptions = { "E-Sports" };
-            
+        private string FormatWagerDetailCompleteDescription(WagerDetailCompleteDescriptionModel wagerDetailDescription, string fixtureName, string sportName) 
+        {   
             string line = wagerDetailDescription.Line.IsNullOrEmpty() ? "" : $"{wagerDetailDescription.Line}" ;
             string baseLine = wagerDetailDescription.BaseLine.IsNullOrEmpty() ? "" : $"{wagerDetailDescription.BaseLine}" ;                        
 
@@ -2069,16 +2110,10 @@ namespace WolfApiCore.DbTier
             if (doubleValue > 0 && isSpread)
                 line = $"+{line}";
 
-            string odds = wagerDetailDescription.Odds1 > 0 ? $"+{wagerDetailDescription.Odds1}" : $"{wagerDetailDescription.Odds1}";
-
-
-            string homeTeam = GetShortName(wagerDetailDescription?.HomeTeam);
-            string visitorTeam = GetShortName(wagerDetailDescription?.VisitorTeam);
-
-            bool isTournament = IsSportWithTournament(wagerDetailDescription!.FixtureId!);
+            string odds = wagerDetailDescription.Odds1 > 0 ? $"+{wagerDetailDescription.Odds1}" : $"{wagerDetailDescription.Odds1}";            
             
 
-            return $"{wagerDetailDescription!.MarketName}:{baseLine} {wagerDetailDescription.Name} {line} {odds} [{(!isTournament ? $"{homeTeam} vs {visitorTeam}" : wagerDetailDescription.LeagueName!)}/{(!leagueNameExceptions.Contains(wagerDetailDescription!.SportName) ? wagerDetailDescription!.SportName : $"{wagerDetailDescription!.SportName} {wagerDetailDescription.LeagueName}")}]";
+            return $"{wagerDetailDescription!.MarketName}:{baseLine} {wagerDetailDescription.Name} {line} {odds} [{ fixtureName }/{ sportName }]";
         }
 
         public bool IsSportWithTournament(int fixtureId)

@@ -9,40 +9,51 @@ var builder = WebApplication.CreateBuilder(args);
 
 //-- TEST -----------------------------------
 /*
-var dbWager = new LiveDbWager();
+var testEnabled = true;
 
-LSport_BetSlipObj betslip = new LSport_BetSlipObj();
-
-betslip.IdPlayer = 300563;
-
-
-betslip.Events = new List<LSport_BetGame>();
-
-betslip.Events.Add(new LSport_BetGame()
+if(testEnabled)
 {
-    FixtureId = 12628387,
-    VisitorTeam = "TiPS",
-    HomeTeam = "LPS",
-    SportName = "SOCCER",
-    LeagueName = "FINLAND - SUOMEN CUP",
-    Selections = new List<LSport_EventPropDto>()
-});
+    var dbWager = new LiveDbWager();
 
-betslip.Events[0].Selections.Add(new LSport_EventPropDto() {
-    IdL1 = "208021323512628387",
-    FixtureId = 12628387,
-    MarketId = 2,
-    Line1 = "4.5",
-    Odds1 = -175,
-    Price = 1.571m,
-    Name = "Under",
-    BaseLine = "4.5",
-    BsRiskAmount = 175,
-    BsWinAmount = 100
-});
+    LSport_BetSlipObj betslip = new LSport_BetSlipObj();
+
+    betslip.IdPlayer = 300563;
+    betslip.IsMobile = true;
 
 
-dbWager.ValidateSelectionsForWagers(betslip);
+    betslip.Events = new List<LSport_BetGame>();
+
+    betslip.Events.Add(new LSport_BetGame()
+    {
+        FixtureId = 10518376,        
+        HomeTeam = "Harris English",
+        VisitorTeam = "Chris Kirk",
+        SportName = "Golf",
+        LeagueName = "US Masters 2024",
+
+        Selections = new List<LSport_EventPropDto>()
+    });
+
+    //163145791010518376	10518376	274	Outright Winner	NULL	Scottie Scheffler	1	1.0	5	53	2024-04-11 23:51:17.403	140	2024-04-11 19:51:17.063	NULL	NULL
+
+    betslip.Events[0].Selections.Add(new LSport_EventPropDto() 
+    {
+        IdL1 = "163145791010518376",
+        FixtureId = 10518376,
+        MarketId = 274,
+        MarketName = "Outright Winner",
+        Line1 = null,
+        Odds1 = 140,
+        Price = 2.4m,
+        Name = "Scottie Scheffler",
+        BaseLine = null,
+        BsRiskAmount = 10,
+        BsWinAmount = 14
+    });
+
+
+    dbWager.ValidateSelectionsForWagers(betslip);
+}
 */
 //------------------------------------------
 
