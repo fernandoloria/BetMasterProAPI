@@ -1,9 +1,7 @@
 ﻿
 using Dapper;
 using Microsoft.Data.SqlClient;
-using System.Collections.Generic;
 using System.Data;
-using System.Linq;
 using WolfApiCore.Models;
 using static WolfApiCore.Models.AdminModels;
 
@@ -77,23 +75,133 @@ namespace WolfApiCore.DbTier
             return games;
         }//end GetAllScores
 
-        private List<LSportGameDto> GetSignalEvents()
+        public List<LSportGameDto> GetSignalEvents()
         {
-            List<LSportGameDto> resultList = new List<LSportGameDto>();
-            string sql = "exec [sp_MGL_GetSignalEvents]";
-            // var values = new { StatusId = StatusId };
-
+            var signalEvents = new List<LSportGameDto>();    
             try
             {
                 using var connection = new SqlConnection(connString);
-                resultList = connection.Query<LSportGameDto>(sql/*, values*/).ToList();
+                signalEvents = connection.Query<LSportGameDto>("exec [sp_MGL_GetSignalEvents]"/*, new { StatusId = StatusId }*/).ToList();
 
 
-                foreach (var game in resultList)
+                foreach (var game in signalEvents)
                 {
                     //get markets/lines
-                    game.PropMarkets = ConvertToScreenProps(GetEventsMarketsLines(game.FixtureId, game.SportId), game.FixtureId);
+                    game.PropMarkets = ConvertToScreenProps(
+                                            GetEventsMarketsLines(game.FixtureId, game.SportId), 
+                                            game.FixtureId
+                                       );
 
+                }
+
+            }
+            catch (Exception ex)
+            {
+                //here todo log
+                string value = ex.Message;
+            }
+
+            return signalEvents;
+        }//end GetAllScores
+
+
+        
+        public List<LSportGameDto> GetSignalEventsV2()
+        {
+            var signalEvents = new List<GameMarketAndLinesDTO>();
+            var gamesDTO = new List<LSportGameDto>();
+
+            try
+            {
+                using (var connection = new SqlConnection(connString))
+                {
+                    //trae todos los events con los market y lineas aplanados en una sola consulta...
+                    signalEvents = connection.Query<GameMarketAndLinesDTO>("exec [sp_MGL_GetSignalEventsV2]").ToList();
+                }
+
+
+                var groupedFixtures = signalEvents.GroupBy(evt => evt.FixtureId);
+
+                foreach (var groupedFixture in groupedFixtures)
+                { 
+                    var fixture = groupedFixture.First();
+
+                    var game = new LSportGameDto
+                    {
+                        FixtureId = fixture.FixtureId,
+                        StatusId = fixture.StatusId,
+                        Status_Description = fixture.Status_Description,
+                        Status_DescriptionCss = fixture.Status_DescriptionCss,
+                        CurrentPeriod = fixture.CurrentPeriod,
+                        PremiumGame = fixture.PremiumGame,
+                        BetCount = fixture.BetCount,
+                        GameTime = fixture.GameTime,
+                        PeriodDesc = fixture.PeriodDesc,
+                        GameStatus = fixture.GameStatus,
+                        VisitorScore = fixture.VisitorScore,
+                        HomeScore = fixture.HomeScore,
+                        ScoreCreatedDateTime = fixture.ScoreCreatedDateTime,
+                        SportId = fixture.SportId,
+                        SportName = fixture.SportName,
+                        LeagueId = fixture.LeagueId,
+                        LeagueName = fixture.LeagueName,
+                        EventFixtureDateTime = fixture.EventFixtureDateTime,
+                        VisitorRotation = fixture.VisitorRotation,
+                        HomeRotation = fixture.HomeRotation,
+                        VisitorTeamId = fixture.VisitorTeamId,
+                        HomeTeamId = fixture.HomeTeamId,
+                        EventCreatedDateTime = fixture.EventCreatedDateTime,
+                        IdGame = fixture.IdGame,
+                        VisitorTeam = fixture.VisitorTeam,
+                        HomeTeam = fixture.HomeTeam,
+                        LocationId = fixture.LocationId,
+                        LocationName = fixture.LocationName,
+                        GameId = fixture.GameId,
+                        ShowLines = fixture.ShowLines,
+                        TotalLines = fixture.TotalLines,
+                        IsTournament = fixture.IsTournament,
+                        PropMarkets = new List<LSport_EventPropMarketDto>()
+                    };                    
+
+                    var groupedMarkets = groupedFixture.GroupBy(m => m.MarketId);
+                    foreach (var groupedMarket in groupedMarkets)
+                    {
+                        var firstMarket = groupedMarket.First();
+
+                        var market = new LSport_EventPropMarketDto
+                        {
+                            MainLine = firstMarket.MainLine,
+                            MarketID = firstMarket.MarketId,
+                            MarketName = firstMarket.MarketName!,
+                            IsTnt = firstMarket.IsTnt,
+                            IsPlayerProp = firstMarket.IsPlayerProp,
+                            IsGameProp = firstMarket.IsGameProp,
+                            IsMain = firstMarket.IsMain,
+                            AllowMarketParlay = firstMarket.AllowMarketParlay,
+                            Explanation = firstMarket.Explanation,
+                            Props = new List<LSport_EventPropDto>()
+                        };                        
+
+                        foreach (var linea in groupedMarket)
+                        {
+                            market.Props.Add(new LSport_EventPropDto
+                            {
+                                MarketId = linea.MarketId,
+                                IdL1 = linea.Id.ToString(),
+                                FixtureId = linea.FixtureId,
+                                Line1 = linea.Line,
+                                MarketName = linea.MarketName,
+                                Odds1 = int.Parse(linea.PriceUS!),
+                                Name = linea.Name!.ToUpper(),
+                                IsSelected = false,
+                                BaseLine = FixBaseLineStr(linea.BaseLine),
+                                OriginalName = linea.Name,
+                                Price = Convert.ToDecimal(linea.Price)
+                            });
+                        }
+                        game.PropMarkets.Add(market);
+                    }
+                    gamesDTO.Add(game);
                 }
             }
             catch (Exception ex)
@@ -102,8 +210,93 @@ namespace WolfApiCore.DbTier
                 string value = ex.Message;
             }
 
-            return resultList;
-        }//end GetAllScores
+            return gamesDTO;
+        }
+
+
+        public List<LSportGameDto> GetSignalEventsV3()
+        // usar multi-mapping de Dapper...
+        {
+            var signalEvents = new List<GameMarketAndLinesDTO>();
+            var gamesDTO = new List<LSportGameDto>();
+
+            try
+            {
+                using (var connection = new SqlConnection(connString))
+                {
+                    connection.Open();
+
+                    var fixturesDic = new Dictionary<int, LSportGameDto>();
+
+                    var results = connection.Query<LSportGameDto, LSport_EventPropMarketDto, CompletePropMarket, LSportGameDto>(
+                       @"EXEC sp_MGL_GetSignalEventsV2",
+                       (game, market, prop) =>
+                       {
+
+                           LSportGameDto gameEntry;
+
+                           if (!fixturesDic.TryGetValue(game.FixtureId, out gameEntry!))
+                           {
+                               gameEntry = game;
+                               gameEntry.PropMarkets = new List<LSport_EventPropMarketDto>();
+                               fixturesDic.Add(gameEntry.FixtureId, gameEntry);
+                               gamesDTO.Add(gameEntry);
+                           }                          
+
+
+                           var currentMarket = gameEntry.PropMarkets!.FirstOrDefault(m => m.MarketID == market.MarketID);
+                           if (currentMarket == null)
+                           {
+                               currentMarket = new LSport_EventPropMarketDto
+                               {
+                                   MainLine = market.MainLine,
+                                   MarketID = market.MarketID,
+                                   MarketName = market.MarketName,
+                                   IsTnt = market.IsTnt,
+                                   IsPlayerProp = market.IsPlayerProp,
+                                   IsGameProp = market.IsGameProp,
+                                   IsMain = market.IsMain,
+                                   AllowMarketParlay = market.AllowMarketParlay,
+                                   Explanation = market.Explanation,
+                                   Props = new List<LSport_EventPropDto>()
+                               };
+
+                               gameEntry.PropMarkets.Add(currentMarket);
+                           }                          
+
+                           currentMarket.Props.Add(new LSport_EventPropDto
+                           {
+                               MarketId = prop.MarketId,
+                               IdL1 = prop.Id.ToString(),
+                               FixtureId = prop.FixtureId,
+                               Line1 = prop.Line,
+                               MarketName = market.MarketName,
+                               Odds1 = int.Parse(prop.PriceUS!),
+                               Name = prop.Name!.ToUpper(),
+                               IsSelected = false,
+                               BaseLine = FixBaseLineStr(prop.BaseLine!),
+                               OriginalName = prop.Name,
+                               Price = Convert.ToDecimal(prop.Price)
+                           });
+
+                           return gameEntry; // Devuelve el objeto principal (LSportGameDto)
+                       },
+                       splitOn: "MarketId, Id" // Especifica cómo dividir los resultados por cada objeto
+                   );
+
+                   //gamesDTO = results.ToList();
+                }
+            }
+            catch (Exception ex)
+            {
+                //here todo log
+                string value = ex.Message;
+            }
+
+            return gamesDTO;
+        }
+
+
 
         public LSportGameDto GetEventByFixture(int FixtureId)
         {
@@ -313,13 +506,13 @@ namespace WolfApiCore.DbTier
                 //  var GameList = GetAllEventsByOur(hours); //obtemenos todos los fixtures de las ultimas 3 horas
                 var GameList = GetSignalEvents();
 
-
-
                 foreach (var game in GameList)
                 {
 
                     // if (game.TotalLines > 0)
                     // {
+
+                    /* Esto ya se hace internamente en el metodo GetSingalEvents
                     var teams = GetParticipants(game.FixtureId);
                     if (teams != null)
                     {
@@ -332,7 +525,7 @@ namespace WolfApiCore.DbTier
                         game.VisitorTeamId = teams.Where(x => x.Position == 2).FirstOrDefault() != null
                             ? Convert.ToInt32(teams.Where(x => x.Position == 2).FirstOrDefault().ParticipantId)
                             : 0;
-                    }
+                    }*/
 
                     //check if this sports already exists in EventSportLines
                     if (EventSportLines.Where(x => x != null && x.SportId == game.SportId).Any())
@@ -810,35 +1003,25 @@ namespace WolfApiCore.DbTier
         //}
 
         public string FixBaseLineStr(string baseline)
-        {
-            string newbaseline = baseline;
+        {            
             if (!String.IsNullOrEmpty(baseline))
-            {
-                string originalString = baseline;
+            {               
+                int index = baseline.IndexOf("#");
 
-                int index = originalString.IndexOf("#");
-
-                if (index != -1)
-                {
-                    string result = originalString.Substring(0, index);
-                    newbaseline = result;
-                }
-                else
-                {
-                    // Console.WriteLine("El caracter '#' no se encontró en la cadena.");
-                }
+                if (index >= 0)                
+                    baseline = baseline.Substring(0, index);                
             }
 
-            return newbaseline;
+            return baseline;
         }
 
-        //este metodo toma el objeto de markeys y lineas y lo convierten en el objeto de jerarquia Market -> hijos Lineas
+        //este metodo toma el objeto de markets y lineas y lo convierten en el objeto de jerarquia Market -> hijos Lineas
         private List<LSport_EventPropMarketDto> ConvertToScreenProps(List<CompletePropMarket> gameLines, int FixtureId)
         {
             //List<int> UnderOverProps = new List<int>(new int[] { 21, 28, 45, 46, 47, 77, 153, 155, 220, 221, 337, 354, 335, 430, 466, 916, 920, 927, 928, 1194, 1196, 1197, 1198, 1199, 1200, 1202, 1203, 1218, 1783, 2400, 2541 });
             //List<int> UnderOverProps = new List<int>(new int[] { 1196 });
             var participants = GetParticipants(FixtureId);
-            List<LSport_EventPropMarketDto> resp = new List<LSport_EventPropMarketDto>();
+            var resp = new List<LSport_EventPropMarketDto>();
             try
             {
                 var newMarket = false;
@@ -873,7 +1056,10 @@ namespace WolfApiCore.DbTier
                         Line1 = line.Line,
                         MarketName = line.MarketName,
                         Odds1 = int.Parse(line.PriceUS),
-                        Name = line.Name == "1" ? participants.Where(x => x.Position == 1).FirstOrDefault()?.Name : line.Name == "2" ? participants.Where(x => x.Position == 2).FirstOrDefault()?.Name : line.Name == "X" ? "DRAW" : line.Name.ToUpper(),
+                        Name = line.Name == "1" ? participants.Where(x => x.Position == 1).FirstOrDefault()?.Name 
+                             : line.Name == "2" ? participants.Where(x => x.Position == 2).FirstOrDefault()?.Name 
+                             : line.Name == "X" ? "DRAW" 
+                             : line.Name!.ToUpper(),
                         IsSelected = false,
                         BaseLine = FixBaseLineStr(line.BaseLine),
                         OriginalName = line.Name,

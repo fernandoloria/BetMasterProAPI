@@ -30,6 +30,7 @@ namespace WolfApiCore.Controllers
             var connString = _configuration.GetValue<string>("SrvSettings:DbConnMover");
             var dataAccess = new LiveDbClass(connString);
             dataAccess.WriteSignalRUpdaterIP(ipAddress);
+
             var gamesAndLines = dataAccess.GetSignalFixtures();
             await _hubContext.Clients.All.SendAsync("SendAllGamesAndLines", gamesAndLines);
             return Ok(new { resp = "all is ok" });

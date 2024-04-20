@@ -36,9 +36,9 @@
         public int? GameId { get; set; }
         public bool ShowLines { get; set; }
         public int TotalLines { get; set; }
-        public LSport_EventValuesDto? Line { get; set; }
+        //public LSport_EventValuesDto? Line { get; set; }
         public List<LSport_EventPropMarketDto>? PropMarkets { get; set; }
-        public LSport_MainLine? MainLine { get; set; }
+        //public LSport_MainLine? MainLine { get; set; }
         public bool? IsTournament { get; set; }
     }
 
@@ -257,7 +257,7 @@
 
     public class CompletePropMarket
     {
-        public Int64 Id { get; set; }
+        public Int64 Id { get; set; } //lineId
         public int FixtureId { get; set; }
         public string? Name { get; set; }
         public string? Line { get; set; }
@@ -275,6 +275,30 @@
         public bool? AllowMarketParlay { get; }
         public string? Explanation { get; set; }
     }
+
+
+    //RLM: aplanar el juego con los markets y lineas       
+    public class GameMarketAndLinesDTO: LSportGameDto
+    {
+        public Int64 Id { get; set; } //lineId
+        public new int FixtureId { get; set; }
+        public string? Name { get; set; }
+        public string? Line { get; set; }
+        public string? BaseLine { get; set; }
+        public int LineStatus { get; set; }
+        public string? PriceUS { get; set; }
+        public int MarketId { get; set; }
+        public string? MarketName { get; set; }
+        public string? MainLine { get; set; }
+        public string? Price { get; set; }
+        public bool? IsMain { get; set; }
+        public bool? IsGameProp { get; set; }
+        public bool? IsPlayerProp { get; set; }
+        public bool? IsTnt { get; set; }
+        public bool? AllowMarketParlay { get; }
+        public string? Explanation { get; set; }
+    }
+
 
     public class DgsCredentials
     {

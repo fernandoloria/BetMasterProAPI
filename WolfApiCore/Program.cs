@@ -7,6 +7,18 @@ using WolfApiCore.Utilities;
 var builder = WebApplication.CreateBuilder(args);
 
 
+/* TEST DE RENDIMIENTO SingalEvents
+string moverConnString = "Data Source=192.168.11.29;Initial Catalog=mover;Persist Security Info=True;User ID=live;Password=d_Ez*gIb8v7NogU;TrustServerCertificate=True";
+var db = new LiveDbClass(moverConnString);
+
+db.GetSignalEvents();
+var se1 = db.GetSignalEvents();
+var se2 = db.GetSignalEventsV2();
+var se3 = db.GetSignalEventsV3();
+
+Console.WriteLine("Test finished!");
+*/
+
 //-- TEST -----------------------------------
 /*
 var testEnabled = true;
