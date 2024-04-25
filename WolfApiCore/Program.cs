@@ -7,7 +7,8 @@ using WolfApiCore.Utilities;
 var builder = WebApplication.CreateBuilder(args);
 
 
-/* TEST DE RENDIMIENTO SingalEvents
+// TEST DE RENDIMIENTO SingalEvents
+/*
 string moverConnString = "Data Source=192.168.11.29;Initial Catalog=mover;Persist Security Info=True;User ID=live;Password=d_Ez*gIb8v7NogU;TrustServerCertificate=True";
 var db = new LiveDbClass(moverConnString);
 
@@ -30,19 +31,18 @@ if(testEnabled)
     LSport_BetSlipObj betslip = new LSport_BetSlipObj();
 
     betslip.IdPlayer = 300563;
-    betslip.IsMobile = true;
+    betslip.IsMobile = true;    
 
 
     betslip.Events = new List<LSport_BetGame>();
 
     betslip.Events.Add(new LSport_BetGame()
     {
-        FixtureId = 10518376,        
-        HomeTeam = "Harris English",
-        VisitorTeam = "Chris Kirk",
+        FixtureId = 12752240,
         SportName = "Golf",
-        LeagueName = "US Masters 2024",
-
+        LeagueName = "Zurich Classic of New Orleans",
+        HomeTeam = null,
+        VisitorTeam = "Sam Stevens / Paul Barjon",
         Selections = new List<LSport_EventPropDto>()
     });
 
@@ -50,17 +50,17 @@ if(testEnabled)
 
     betslip.Events[0].Selections.Add(new LSport_EventPropDto() 
     {
-        IdL1 = "163145791010518376",
-        FixtureId = 10518376,
+        IdL1 = "136893673112752240",
+        FixtureId = 12752240,
         MarketId = 274,
         MarketName = "Outright Winner",
         Line1 = null,
-        Odds1 = 140,
-        Price = 2.4m,
-        Name = "Scottie Scheffler",
+        Odds1 = 335,
+        Price = 5.5m,
+        Name = "RORY MCILROY / SHANE LOWR",
         BaseLine = null,
         BsRiskAmount = 10,
-        BsWinAmount = 14
+        BsWinAmount = 33.5m
     });
 
 
@@ -87,9 +87,17 @@ builder.Services.AddCors(options =>
     options.AddPolicy(name: MyAllowSpecificOrigins,
                       policy =>
                       {
-                          policy.WithOrigins("http://localhost:4200", "http://localhost:8101", "http://localhost:5500", "https://pph-design.netlify.app",
-                                              "http://www.contoso.com", "https://live.bridgehost.net",
-                                              "https://vegasliveadmin.bridgehost.net", "https://vegaslive.bet", "https://streaming.vegaslive.bet", "https://propb.bridgehost.net", "https://scores.bridgehost.net")
+                          policy.WithOrigins("http://localhost:4200", 
+                                             "http://localhost:8101", 
+                                             "http://localhost:5500", 
+                                             "https://pph-design.netlify.app",
+                                             "http://www.contoso.com", 
+                                             "https://live.bridgehost.net",
+                                             "https://vegasliveadmin.bridgehost.net", 
+                                             "https://vegaslive.bet", 
+                                             "https://streaming.vegaslive.bet", 
+                                             "https://propb.bridgehost.net", 
+                                             "https://scores.bridgehost.net")
                           .AllowAnyMethod()
                           .AllowAnyHeader()
                           .AllowCredentials();

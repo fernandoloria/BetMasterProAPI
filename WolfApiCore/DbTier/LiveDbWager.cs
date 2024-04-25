@@ -848,46 +848,46 @@ namespace WolfApiCore.DbTier
         }
 
 
-        public LSport_EventPropDto CreateStraightWager(CreateStraightWagerModel createStraightWagerModel)
+        public LSport_EventPropDto CreateStraightWager(CreateStraightWagerModel straightWager)
         {
             try
             {
                 //var PlayerData = GetPlayerData(idPlayer);
 
-                decimal winAmount = (decimal)createStraightWagerModel.PropSelected!.BsWinAmount!;
-                decimal riskAmount = (decimal)createStraightWagerModel.PropSelected.BsRiskAmount!;
+                decimal winAmount = (decimal)straightWager.PropSelected!.BsWinAmount!;
+                decimal riskAmount = (decimal)straightWager.PropSelected.BsRiskAmount!;
 
-                if (createStraightWagerModel.PropSelected.StatusForWager == 9)
+                if (straightWager.PropSelected.StatusForWager == 9)
                 { //linea cambio, igual para win and risk
 
-                    // si oods es negativo afectamos el risk
+                    // si odds es negativo afectamos el risk
                     // si odds es positivo afectamos el win
-                    winAmount = StraightCalculateWin((int)createStraightWagerModel.PropSelected.Odds1!, (decimal)createStraightWagerModel.PropSelected.BsRiskAmount);
+                    winAmount = StraightCalculateWin((int)straightWager.PropSelected.Odds1!, (decimal)straightWager.PropSelected.BsRiskAmount);
                 }
 
-                createStraightWagerModel.PropSelected.BsRiskAmount = riskAmount;
-                createStraightWagerModel.PropSelected.BsWinAmount = winAmount;
+                straightWager.PropSelected.BsRiskAmount = riskAmount;
+                straightWager.PropSelected.BsWinAmount = winAmount;
 
                 //insertamos el straight en las tablas auxiliares
 
-                int idlivewager = InsertLiveWagerHeader((int)createStraightWagerModel.IdPlayer!, 1, riskAmount, winAmount, "Straight", "10.1.1.1", 1, 0, (bool)createStraightWagerModel.IsMobile!);
+                int idlivewager = InsertLiveWagerHeader((int)straightWager.IdPlayer!, 1, riskAmount, winAmount, "Straight", "10.1.1.1", 1, 0, (bool)straightWager.IsMobile!);
 
                 if (idlivewager > 0)
                 {
 
                     WagerDetailCompleteDescriptionModel wagerDetailCompleteDescriptionModel = new WagerDetailCompleteDescriptionModel {
-                        SportName = createStraightWagerModel.SportName,
-                        HomeTeam = createStraightWagerModel.HomeTeam,
-                        VisitorTeam = createStraightWagerModel.VisitorTeam,
-                        MarketId = createStraightWagerModel.PropSelected.MarketId,
-                        MarketName = createStraightWagerModel.PropSelected.MarketName,
-                        Name = createStraightWagerModel.PropSelected.Name,
-                        BaseLine = createStraightWagerModel.PropSelected.BaseLine,
-                        Line = createStraightWagerModel.PropSelected.Line1,
-                        Odds1 = createStraightWagerModel.PropSelected.Odds1,
-                        LeagueName = createStraightWagerModel.LeagueName,
-                        IsTournament = createStraightWagerModel.IsTournament,
-                        FixtureId = (int)createStraightWagerModel.FixtureId!
+                        SportName = straightWager.SportName,
+                        HomeTeam = straightWager.HomeTeam,
+                        VisitorTeam = straightWager.VisitorTeam,
+                        MarketId = straightWager.PropSelected.MarketId,
+                        MarketName = straightWager.PropSelected.MarketName,
+                        Name = straightWager.PropSelected.Name,
+                        BaseLine = straightWager.PropSelected.BaseLine,
+                        Line = straightWager.PropSelected.Line1,
+                        Odds1 = straightWager.PropSelected.Odds1,
+                        LeagueName = straightWager.LeagueName,
+                        IsTournament = straightWager.IsTournament,
+                        FixtureId = (int)straightWager.FixtureId!
                     };
 
 
@@ -896,14 +896,14 @@ namespace WolfApiCore.DbTier
                     string SportName = GetSportName(wagerDetailCompleteDescriptionModel);
                     string CompleteDescription = FormatWagerDetailCompleteDescription(wagerDetailCompleteDescriptionModel, FixtureName, SportName);
 
-                    var idlivewagerDetail = InsertLiveWagerDetail(idlivewager, (int)createStraightWagerModel.FixtureId!, createStraightWagerModel.PropSelected.MarketId, createStraightWagerModel.PropSelected.IdL1!, createStraightWagerModel.PropSelected.BaseLine!, createStraightWagerModel.PropSelected.Line1!, (int)createStraightWagerModel.PropSelected.Odds1!, (decimal)createStraightWagerModel.PropSelected.Price!, createStraightWagerModel.PropSelected.Name!, CompleteDescription, riskAmount, winAmount);
+                    var idlivewagerDetail = InsertLiveWagerDetail(idlivewager, (int)straightWager.FixtureId!, straightWager.PropSelected.MarketId, straightWager.PropSelected.IdL1!, straightWager.PropSelected.BaseLine!, straightWager.PropSelected.Line1!, (int)straightWager.PropSelected.Odds1!, (decimal)straightWager.PropSelected.Price!, straightWager.PropSelected.Name!, CompleteDescription, riskAmount, winAmount);
 
                    
                     if(idlivewagerDetail > 0)
                     {
 
-                        string description = $"VegasLive #{idlivewager} [{createStraightWagerModel.FixtureId}] {SportName} / {FixtureName}";
-                        var idDgsWager = InsertDgsWagerHeader((int)createStraightWagerModel.IdPlayer, riskAmount, winAmount, description, "10.0.0.0");
+                        string description = $"VegasLive #{idlivewager} [{straightWager.FixtureId}] {SportName} / {FixtureName}";
+                        var idDgsWager = InsertDgsWagerHeader((int)straightWager.IdPlayer, riskAmount, winAmount, description, "10.0.0.0");
 
                         if (idDgsWager > 0)
                         {
@@ -911,14 +911,14 @@ namespace WolfApiCore.DbTier
                             //actualizamos el idwager en la tabla auxiliar
                             UpdateLiveWagerHeader(idlivewager, idDgsWager);
 
-                            createStraightWagerModel.PropSelected.BsTicketNumber = idlivewager + "-" + idDgsWager;
-                            createStraightWagerModel.PropSelected.BsBetResult = 1000; //success
+                            straightWager.PropSelected.BsTicketNumber = idlivewager + "-" + idDgsWager;
+                            straightWager.PropSelected.BsBetResult = 1000; //success
 
                         } else {
                             
                             DeleteLiveWager(idlivewager);
-                            createStraightWagerModel.PropSelected.BsTicketNumber = string.Empty;
-                            createStraightWagerModel.PropSelected.BsBetResult = -1;
+                            straightWager.PropSelected.BsTicketNumber = string.Empty;
+                            straightWager.PropSelected.BsBetResult = -1;
                         }
 
 
@@ -928,12 +928,12 @@ namespace WolfApiCore.DbTier
                     {
                         
                         DeleteLiveWager(idlivewager);
-                        createStraightWagerModel.PropSelected.BsBetResult = -1;
+                        straightWager.PropSelected.BsBetResult = -1;
                     }
                 }
                 else
                 {
-                    createStraightWagerModel.PropSelected.BsBetResult = -1;
+                    straightWager.PropSelected.BsBetResult = -1;
                 }
 
             }
@@ -941,7 +941,7 @@ namespace WolfApiCore.DbTier
             {
 
             }
-            return createStraightWagerModel.PropSelected!;
+            return straightWager.PropSelected!;
         }
 
         public LSport_BetSlipObj CreateParlayWager(LSport_BetSlipObj betslipObj)
