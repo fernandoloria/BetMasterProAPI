@@ -5,6 +5,7 @@ using static WolfApiCore.Models.AdminModels;
 using WolfApiCore.Models;
 using WolfApiCore.Utilities;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 
 namespace WolfApiCore.DbTier
 {
@@ -1400,9 +1401,14 @@ namespace WolfApiCore.DbTier
                 {
                     foreach (var oItem in req)
                     {
-                        var values = new { oItem.AgentId, oItem.PlayerId, oItem.AllData };
+                        var values = new { 
+                            oItem.AgentId, 
+                            oItem.PlayerId, 
+                            oItem.AllData 
+                        };
+
                         using var connection = new SqlConnection(moverConnString);
-                        oListResp = connection.Query<GetAccessDeniedListResp>(sql, values).ToList();
+                        oListResp.AddRange(connection.Query<GetAccessDeniedListResp>(sql, values).ToList());
                     }
 
                 }
@@ -1831,6 +1837,48 @@ namespace WolfApiCore.DbTier
             }
 
             return fixtures;
+        }
+
+        
+        public AgentSettings GetAgentSettings(int id)
+        {
+            var resp = new AgentSettings();
+            try
+            {
+                using (var connection = new SqlConnection(moverConnString))
+                {                    
+                    resp = connection.QueryFirstOrDefault<AgentSettings>(sql: "sp_MGL_GetAgentSettings", new
+                    {
+                        idAgent = id
+                    }, commandType: CommandType.StoredProcedure);
+
+                }
+            }
+            catch// (Exception ex)
+            {
+                //_ = new Misc().WriteErrorLog("MoverDbClass", "GetPendingWagerHeader", ex.Message, ex.StackTrace);
+            }
+
+            return resp;
+        }
+
+        public void SaveAgentSettings(AgentSettings settings)
+        {            
+            try
+            {
+                using (var connection = new SqlConnection(moverConnString))
+                {
+                    connection.Execute(sql: "sp_MGL_SetAgentSettings", new
+                    {
+                        idAgent = settings.IdAgent,
+                        secondsDelay = settings.SecondsDelay
+                    }, commandType: CommandType.StoredProcedure);
+                }
+            }
+            catch// (Exception ex)
+            {
+                //_ = new Misc().WriteErrorLog("MoverDbClass", "GetPendingWagerHeader", ex.Message, ex.StackTrace);
+            }
         }
 
     }//end class

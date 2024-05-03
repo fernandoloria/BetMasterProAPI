@@ -428,5 +428,12 @@
         public class GetPlayerInfoResp {
             public int IdAgent { get; set; }
         }
+        
+        public class AgentSettings
+        {
+            public int IdAgent { get; set; }
+            public int SecondsDelay { get; set; }
+        }
+
     }
 }

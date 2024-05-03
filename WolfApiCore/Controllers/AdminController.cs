@@ -176,5 +176,19 @@ namespace WolfApiCore.Controllers
         {
             return new LiveAdminDbClass().GetFixturesByDate(request);
         }
+
+
+        [HttpPost("GetAgentSettings/{id}")]
+        public AgentSettings GetAgentSettings(int id)
+        {
+            return new LiveAdminDbClass().GetAgentSettings(id);
+        }
+
+        [HttpPost("SaveAgentSettings")]
+        public void SaveAgentSettings(AgentSettings settings)
+        {
+            new LiveAdminDbClass().SaveAgentSettings(settings);
+        }
+
     }//end controller
 }//end namespace
