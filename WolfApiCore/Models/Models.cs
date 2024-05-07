@@ -379,6 +379,12 @@
         public int Rot { get; set; }
     }
 
+    public class SnapShotResponse
+    {
+        public string Message { get; set;  }
+        public FixtureApiDto SnapShot { get; set; }
+    }
+
     public class FixtureApiDto
     {
         public Header Header { get; set; }

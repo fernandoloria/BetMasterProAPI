@@ -1933,7 +1933,10 @@ namespace WolfApiCore.DbTier
 
         public List<CheckListLines> GetLSportsBetsInfo(List<CheckListLines> checkList)
         {
-            var snapShot = new RestApiClass().GetLSportsSnapshot(checkList, "1245", "administracion@corporacionzircon.com", "J83@d784cE");
+            var snapShotResult = new RestApiClass().GetLSportsSnapshot(checkList, "1245", "administracion@corporacionzircon.com", "J83@d784cE");
+
+            var snapShot = snapShotResult.SnapShot;
+
             if (snapShot != null)
             {
                 if (snapShot.Body != null && snapShot.Body.Count > 0)
@@ -1982,76 +1985,8 @@ namespace WolfApiCore.DbTier
                 //cancelar todas las lineas porque no obtuvimos datos
             }
 
-            //********************************************************************************
-            //********************************************************************************
-            /*
-            if (obj != null)
-            {
-                if (obj.Body != null && obj.Body.Count > 0)
-                {
-                    if (obj.Body[0].Fixture != null)
-                    {
-                        if (obj.Body[0].Fixture.Status == 2) //juego sigue activo
-                        {
-                            //ahora revisamos la linea
-                            if (obj.Body[0].Markets != null && obj.Body[0].Markets.Count() > 0)
-                            {
-                                var betMarket = obj.Body[0].Markets.Where(x => x.Id == MarketId).FirstOrDefault();
-
-                                if (betMarket != null && betMarket.Bets != null && betMarket.Bets.Count() > 0)
-                                {
-
-                                    var betLine = betMarket.Bets.Where(x => x.Id.ToString() == BetId.ToString()).FirstOrDefault();
-
-                                    if (betLine != null)
-                                    {
-                                        if (betLine.Status != null && betLine.Status == 1)
-                                        {
-                                            result = "Encontrada y bien";
-                                        }
-                                        else
-                                        {
-                                            result = "BetLine Closed";
-                                        }
-                                    }
-                                    else
-                                    {
-                                        result = "Betline does not exist";
-                                    }
-                                }
-                                else
-                                {
-                                    result = "Market closed or It does not exist";
-                                }
-                            }
-                            else
-                            {
-                                result = "No Markets available";
-                            }
-                        }
-                        else
-                        {
-                            result = "Game Status closed";
-                        }
-                    }
-                    else
-                    {
-                        result = "No Fixture ";
-                    }
-                }
-                else
-                {
-                    result = "No Body";
-                }
-            }
-            else
-            {
-                result = "No Data";
-            }
-            */
             return checkList;
-
-        }//end test
+        }
 
         private string GetShortName(string teamName) 
         {
@@ -2279,6 +2214,7 @@ namespace WolfApiCore.DbTier
         public int GMT { get; set; }
         public bool Access { get; set; }
         //  public string Password { get; set; }
+        public int SecondsDelay { get; set; }
     }
 
 

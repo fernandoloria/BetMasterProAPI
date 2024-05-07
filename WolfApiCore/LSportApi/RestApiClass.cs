@@ -20,7 +20,7 @@ namespace WolfApiCore.LSportApi
             public List<int> Markets { get; set; }
         }
 
-        public FixtureApiDto GetLSportsSnapshot(List<CheckListLines> checkList, string packageId,  string userName, string password)
+        public SnapShotResponse GetLSportsSnapshot(List<CheckListLines> checkList, string packageId,  string userName, string password)
         {
             List<int> fixtureList = checkList.Select(x => x.FixtureId).Distinct().ToList();
             List<int> marketList = checkList.Select(x => x.MarketId).Distinct().ToList();
@@ -35,7 +35,7 @@ namespace WolfApiCore.LSportApi
                 {
                     UserName = userName, //"marvin.gl@gmail.com",
                     PackageId = Convert.ToInt32(packageId),
-                    Password = password, //"J83@d784cE",
+                    Password = password, 
                     Fixtures = fixtureList,
                     Markets = marketList
                 };
@@ -59,10 +59,14 @@ namespace WolfApiCore.LSportApi
                 {
                     ResponseString = new StreamReader(response.GetResponseStream()).ReadToEnd();
                     resultValue = JsonConvert.DeserializeObject<FixtureApiDto>(ResponseString);
+
+                    ResponseString = "200 Ok";
                 }
             }
             catch (WebException ex)
             {
+                ResponseString = ex.Message;
+                /*
                 if (ex.Status == WebExceptionStatus.ProtocolError)
                 {
                     response = (HttpWebResponse)ex.Response;
@@ -71,10 +75,13 @@ namespace WolfApiCore.LSportApi
                 else
                 {
                     ResponseString = "Some error occured: " + ex.Status.ToString();
-                }
+                }*/
             }
 
-            return resultValue;
+            return new SnapShotResponse() {    
+                Message = ResponseString,
+                SnapShot = resultValue! 
+            };
 
         }//end method
 
