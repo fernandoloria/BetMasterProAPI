@@ -2,6 +2,7 @@
 using Microsoft.IdentityModel.Tokens;
 using WolfApiCore.DbTier;
 using WolfApiCore.Models;
+using WolfApiCore.Stream;
 using WolfApiCore.Utilities;
 
 namespace WolfApiCore.Controllers
@@ -17,6 +18,12 @@ namespace WolfApiCore.Controllers
         {
             _configuration = configuration;
             _base64Service = base64Service;
+        }
+
+        [HttpGet("GetStream")]
+        public StreamModel GetStream()
+        {
+            return new StreamService().GetStream();
         }
 
         [HttpPost("GetLastBetHours")]
