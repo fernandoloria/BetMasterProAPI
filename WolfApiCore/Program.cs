@@ -91,7 +91,7 @@ builder.Services.AddCors(options =>
                                              "http://localhost:8101", 
                                              "http://localhost:5500", 
                                              "https://pph-design.netlify.app",
-                                             "http://www.contoso.com", 
+                                         //    "http://www.contoso.com", 
                                              "https://live.bridgehost.net",
                                              "https://vegasliveadmin.bridgehost.net", 
                                              "https://vegaslive.bet", 

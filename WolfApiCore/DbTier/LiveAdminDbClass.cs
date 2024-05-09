@@ -21,14 +21,14 @@ namespace WolfApiCore.DbTier
             {
                 if (LoginReq != null)
                 {
-                    if (LoginReq.Origin == 1)
+                    if (LoginReq.Origin == 1) //usuario de DGS
                     {
                         string sql = "exec TNTMakerLogin @User, @Password";
                         var values = new { User = LoginReq.Username, LoginReq.Password };
                         using var connection = new SqlConnection(dgsConnString);
                         agentLoginResp = connection.Query<AgentLoginResp>(sql, values).FirstOrDefault();
                     }
-                    else if (LoginReq.Origin == 2)
+                    else if (LoginReq.Origin == 2) //Agent Site
                     {
                         string sql = "exec sp_MGL_AdminLogin @Agent, @Password";
                         var values = new { Agent = LoginReq.Username, LoginReq.Password };
