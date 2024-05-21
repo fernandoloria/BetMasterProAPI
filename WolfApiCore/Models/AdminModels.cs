@@ -432,7 +432,7 @@
         public class AgentSettings
         {
             public int IdAgent { get; set; }
-            public int SecondsDelay { get; set; }
+            public int? SecondsDelay { get; set; }
         }
 
     }
