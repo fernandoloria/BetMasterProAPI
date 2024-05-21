@@ -1869,7 +1869,7 @@ namespace WolfApiCore.DbTier
             {
                 using (var connection = new SqlConnection(moverConnString))
                 {
-                    resp = connection.QueryFirstOrDefault<AgentSettings>(sql: "sp_MGL_GetAgentSettingsFroAdmin", new
+                    resp = connection.QueryFirstOrDefault<AgentSettings>(sql: "sp_MGL_GetAgentSettingsForAdmin", new
                     {
                         idAgent = id
                     }, commandType: CommandType.StoredProcedure);
