@@ -1875,6 +1875,28 @@ namespace WolfApiCore.DbTier
             return resp;
         }
 
+        public AgentSettings GetAgentSettingsForAdmin(int id)
+        {
+            var resp = new AgentSettings();
+            try
+            {
+                using (var connection = new SqlConnection(moverConnString))
+                {
+                    resp = connection.QueryFirstOrDefault<AgentSettings>(sql: "sp_MGL_GetAgentSettingsForAdmin", new
+                    {
+                        idAgent = id
+                    }, commandType: CommandType.StoredProcedure);
+
+                }
+            }
+            catch// (Exception ex)
+            {
+                //_ = new Misc().WriteErrorLog("MoverDbClass", "GetPendingWagerHeader", ex.Message, ex.StackTrace);
+            }
+
+            return resp;
+        }
+
         public void SaveAgentSettings(AgentSettings settings)
         {            
             try
