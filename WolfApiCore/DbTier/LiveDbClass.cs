@@ -119,12 +119,11 @@ namespace WolfApiCore.DbTier
                     signalEvents = connection.Query<GameMarketAndLinesDTO>("exec [sp_MGL_GetSignalEventsV2]").ToList();
                 }
 
+                var fixtures = signalEvents.GroupBy(e => e.FixtureId);
 
-                var groupedFixtures = signalEvents.GroupBy(evt => evt.FixtureId);
-
-                foreach (var groupedFixture in groupedFixtures)
+                foreach (var fixtureGroup in fixtures)
                 { 
-                    var fixture = groupedFixture.First();
+                    var fixture = fixtureGroup.First();
 
                     var game = new LSportGameDto
                     {
@@ -163,28 +162,28 @@ namespace WolfApiCore.DbTier
                         PropMarkets = new List<LSport_EventPropMarketDto>()
                     };                    
 
-                    var groupedMarkets = groupedFixture.GroupBy(m => m.MarketId);
-                    foreach (var groupedMarket in groupedMarkets)
+                    var markets = fixtureGroup.GroupBy(m => m.MarketId);
+                    foreach (var marketGroup in markets)
                     {
-                        var firstMarket = groupedMarket.First();
+                        var market = marketGroup.First();
 
-                        var market = new LSport_EventPropMarketDto
+                        var gameMarket = new LSport_EventPropMarketDto
                         {
-                            MainLine = firstMarket.MainLine,
-                            MarketID = firstMarket.MarketId,
-                            MarketName = firstMarket.MarketName!,
-                            IsTnt = firstMarket.IsTnt,
-                            IsPlayerProp = firstMarket.IsPlayerProp,
-                            IsGameProp = firstMarket.IsGameProp,
-                            IsMain = firstMarket.IsMain,
-                            AllowMarketParlay = firstMarket.AllowMarketParlay,
-                            Explanation = firstMarket.Explanation,
+                            MainLine = market.MainLine,
+                            MarketID = market.MarketId,
+                            MarketName = market.MarketName!,
+                            IsTnt = market.IsTnt,
+                            IsPlayerProp = market.IsPlayerProp,
+                            IsGameProp = market.IsGameProp,
+                            IsMain = market.IsMain,
+                            AllowMarketParlay = market.AllowMarketParlay,
+                            Explanation = market.Explanation,
                             Props = new List<LSport_EventPropDto>()
                         };                        
 
-                        foreach (var linea in groupedMarket)
+                        foreach (var linea in marketGroup)
                         {
-                            market.Props.Add(new LSport_EventPropDto
+                            gameMarket.Props.Add(new LSport_EventPropDto
                             {
                                 MarketId = linea.MarketId,
                                 IdL1 = linea.Id.ToString(),
@@ -199,7 +198,7 @@ namespace WolfApiCore.DbTier
                                 Price = Convert.ToDecimal(linea.Price)
                             });
                         }
-                        game.PropMarkets.Add(market);
+                        game.PropMarkets.Add(gameMarket);
                     }
                     gamesDTO.Add(game);
                 }
@@ -500,13 +499,13 @@ namespace WolfApiCore.DbTier
 
         public List<LSport_ScreenSportsDto> GetSignalFixtures()
         {
-            List<LSport_ScreenSportsDto> EventSportLines = new List<LSport_ScreenSportsDto>();
+            List<LSport_ScreenSportsDto> sportList = new List<LSport_ScreenSportsDto>();
             try
             {
                 //  var GameList = GetAllEventsByOur(hours); //obtemenos todos los fixtures de las ultimas 3 horas
-                var GameList = GetSignalEvents();
+                var gameList = GetSignalEventsV2();//GetSignalEvents();
 
-                foreach (var game in GameList)
+                foreach (var game in gameList)
                 {
 
                     // if (game.TotalLines > 0)
@@ -527,47 +526,14 @@ namespace WolfApiCore.DbTier
                             : 0;
                     }*/
 
-                    //check if this sports already exists in EventSportLines
-                    if (EventSportLines.Where(x => x != null && x.SportId == game.SportId).Any())
-                    {
-                        //yes, sport exists
-                        if (EventSportLines.Where(x => x != null && x.SportId == game.SportId).FirstOrDefault()
-                            .Leagues.Where(f => f.LeagueId == game.LeagueId).Any())
-                        {
-                            EventSportLines.Where(x => x != null && x.SportId == game.SportId).FirstOrDefault()
-                                .Leagues.Where(f => f.LeagueId == game.LeagueId).FirstOrDefault().Games.Add(game);
-                        }
-                        else
-                        {
-                            LSport_ScreenLeagueDto lg = new LSport_ScreenLeagueDto()
-                            {
-                                ShowLeague = false,
-                                LeagueName = $"{ (HasLocationNameException(game.LocationName) ? game.LeagueName : $"{game.LocationName} - {game.LeagueName}") }",
-                                LeagueId = game.LeagueId,
-                                Games = new List<LSportGameDto>()
-                            };
 
-                            lg.Games.Add(game);
-                            EventSportLines.Where(x => x != null && x.SportId == game.SportId).FirstOrDefault()
-                                .Leagues.Add(lg);
-                        }
+                    //Buscar el deporte
+                    var sport = sportList.Where(s => s.SportId == game.SportId).FirstOrDefault();
 
-                    }
-                    else
-                    {
-                        LSport_ScreenLeagueDto lg = new LSport_ScreenLeagueDto()
-                        {
-                            ShowLeague = false,
-                            LeagueName = $"{ (HasLocationNameException(game.LocationName) ? game.LeagueName : $"{game.LocationName} - {game.LeagueName}") }",
-                            LeagueId = game.LeagueId,
-                            Games = new List<LSportGameDto>()
-                        };
-                        lg.Games.Add(game);
-
-
-
-
-                        LSport_ScreenSportsDto sl = new LSport_ScreenSportsDto()
+                    //Si no existe
+                    if (sport == null)
+                    {                        
+                        sport = new LSport_ScreenSportsDto()
                         {
                             ShowSport = false,
                             SportName = game.SportName,
@@ -576,19 +542,37 @@ namespace WolfApiCore.DbTier
 
                         };
 
-                        sl.Leagues.Add(lg);
+                        //Agregar el deporte
+                        sportList.Add(sport); 
+                    }                                        
 
+                    //Buscar la liga
+                    var league = sport!.Leagues.Where(l => l.LeagueId == game.LeagueId).FirstOrDefault();
 
-                        EventSportLines.Add(sl);
+                    //Si no existe
+                    if (league == null) 
+                    {                        
+                        league = new LSport_ScreenLeagueDto()
+                        {
+                            ShowLeague = false,
+                            LeagueName = $"{(HasLocationNameException(game.LocationName) ? game.LeagueName : $"{game.LocationName} - {game.LeagueName}")}",
+                            LeagueId = game.LeagueId,
+                            Games = new List<LSportGameDto>()
+                        };
+
+                        //Agregar la liga
+                        sport.Leagues.Add(league);
                     }
-                    //}
+
+                    //Agregar el juego
+                    league.Games.Add(game);                    
                 }
             }
             catch (Exception ex)
             {
 
             }
-            return EventSportLines;
+            return sportList;
         }
 
         public List<LSport_ScreenSportsDto> GetPartialGamesAndLines(int FixtureId)

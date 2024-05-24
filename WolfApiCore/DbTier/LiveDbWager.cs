@@ -536,8 +536,10 @@ namespace WolfApiCore.DbTier
                     LeagueId = null,
                     FixtureId = null
                 };
+
                 // Validate first the Player - Sport //
                 var oLimitsSport = oAdminClass.GetProfileLimitsByIdPlayer(oReq);
+
                 if (oLimitsSport != null)
                 {
                     resp.IsSportLimit = true;
@@ -564,8 +566,6 @@ namespace WolfApiCore.DbTier
                         resp.MinWager = oLimitsLeague.MinWager;
                         resp.MaxWager = oLimitsLeague.MaxWager;
                         resp.MaxPayout = oLimitsLeague.MaxPayout;
-
-
 
                         resp.MinPrice = oLimitsLeague.MinPrice;
                         resp.MaxPrice = oLimitsLeague.MaxPrice;
@@ -833,13 +833,31 @@ namespace WolfApiCore.DbTier
 
         private string GetFixtureName(WagerDetailCompleteDescriptionModel detailDescription) 
         {
-            string homeTeam = GetShortName(detailDescription?.HomeTeam);
-            string visitorTeam = GetShortName(detailDescription?.VisitorTeam);
+            bool isTournament = IsSportWithTournament(detailDescription.FixtureId!);
+            var fixtureName = "";
 
-            bool isTournament = IsSportWithTournament(detailDescription!.FixtureId!);
+            if (!isTournament)
+            {
+                //RLM:2024.05.10, Fix, si alguno de los equipos viene vacio, buscar el nombre en bd
+                if (detailDescription.HomeTeam == "" || detailDescription.VisitorTeam == "")
+                {
+                    var participants = new LiveDbClass(MoverConnString).GetParticipants(detailDescription.FixtureId);
+                    
+                    if (detailDescription.HomeTeam == "")
+                       detailDescription.HomeTeam = participants?.Where(p => p.Position == 1).FirstOrDefault()?.Name;
+
+                    if (detailDescription.VisitorTeam == "")
+                       detailDescription.VisitorTeam = participants?.Where(p => p.Position == 2).FirstOrDefault()?.Name;                    
+                }
+
+                string homeTeam = GetShortName(detailDescription.HomeTeam!);
+                string visitorTeam = GetShortName(detailDescription.VisitorTeam!);
+
+                fixtureName = $"{homeTeam} vs {visitorTeam}";                
+            }
 
 
-            return $"{(isTournament? detailDescription.LeagueName! : $"{homeTeam} vs {visitorTeam}")}"; 
+            return $"{(isTournament? detailDescription.LeagueName! : fixtureName)}"; 
         }
 
         private string GetSportName(WagerDetailCompleteDescriptionModel detailDescription) 

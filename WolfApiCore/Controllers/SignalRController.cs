@@ -26,10 +26,12 @@ namespace WolfApiCore.Controllers
         [HttpGet("GetChangedOrNewScores/{FixtureId}")]
         public async Task<IActionResult> GetChangedOrNewScores(int FixtureId)
         {
+            /* Trace. ya no es necesario
             var ipAddress = HttpContext.GetRemoteIPAddress().ToString();
             var connString = _configuration.GetValue<string>("SrvSettings:DbConnMover");
             var dataAccess = new LiveDbClass(connString);
             dataAccess.WriteSignalRUpdaterIP(ipAddress);
+            */
 
             var gamesAndLines = dataAccess.GetSignalFixtures();
             await _hubContext.Clients.All.SendAsync("SendAllGamesAndLines", gamesAndLines);

@@ -1156,9 +1156,22 @@ namespace WolfApiCore.DbTier
                 {
                     foreach (var oLimit in req)
                     {
-                        var values = new { oLimit.PlayerId, oLimit.IdWagerType, oLimit.SportId, oLimit.LeagueId, oLimit.FixtureId, oLimit.MinPrice, oLimit.MaxPrice, oLimit.TotAmtGame };
+                        var values = new 
+                        { 
+                            oLimit.PlayerId, 
+                            oLimit.IdWagerType, 
+                            oLimit.SportId, 
+                            oLimit.LeagueId, 
+                            oLimit.FixtureId, 
+                            oLimit.MinPrice, 
+                            oLimit.MaxPrice, 
+                            oLimit.TotAmtGame 
+                        };
+
                         using var connection = new SqlConnection(moverConnString);
                         List<ProfileLimitsByPlayerResp> ProfileLimitsRespAUX = connection.Query<ProfileLimitsByPlayerResp>(sql, values).ToList();
+
+
                         if (ProfileLimitsRespAUX.Count() > 0)
                         {
                             ProfileLimitsResp.AddRange(ProfileLimitsRespAUX);
