@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using WolfApiCore.DbTier;
 using WolfApiCore.Hubs;
 using WolfApiCore.Models;
@@ -6,6 +7,10 @@ using WolfApiCore.Utilities;
 
 var builder = WebApplication.CreateBuilder(args);
 
+/* TEST Get Games And Lines
+string moverConnString = "Data Source=192.168.11.29;Initial Catalog=mover;Persist Security Info=True;User ID=live;Password=d_Ez*gIb8v7NogU;TrustServerCertificate=True";
+var resultData = new LiveDbClass(moverConnString).GetGamesAndLines(300563);
+*/
 
 // TEST DE RENDIMIENTO SingalEvents
 /*

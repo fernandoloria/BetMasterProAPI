@@ -1,6 +1,7 @@
 ﻿
 using Dapper;
 using Microsoft.Data.SqlClient;
+using System.Collections.Immutable;
 using System.Data;
 using WolfApiCore.Models;
 using static WolfApiCore.Models.AdminModels;
@@ -328,42 +329,37 @@ namespace WolfApiCore.DbTier
                 //var GameList = GetAllEventsByOur(hours); //obtemenos todos los fixtures de las ultimas 3 horas
                 LiveAdminDbClass oLiveAdmin = new LiveAdminDbClass();
                 LiveDbWager oLiveDbWager = new LiveDbWager();
+
                 var gameList = GetAllActiveEvents();
+
                 if (idPlayer > 0)
                 {
                     var oPlayerHierarchy = oLiveDbWager.GetPlayerHierarchy(idPlayer);
-                    List<GetSportsAndLeaguesHiddenReq> oListResp = new List<GetSportsAndLeaguesHiddenReq>();
-                    GetSportsAndLeaguesHiddenReq resPlayer = new GetSportsAndLeaguesHiddenReq()
+                    List<GetSportsAndLeaguesHiddenReq> request = new List<GetSportsAndLeaguesHiddenReq>();
+                    request.Add(new GetSportsAndLeaguesHiddenReq()
                     {
                         AgentId = oPlayerHierarchy.SubAgentId,
                         PlayerId = oPlayerHierarchy.PlayerId
+                    });
 
-                    };
-                    oListResp.Add(resPlayer);
-
-                    var oSportsAndLeaguesBlockedPlayer = oLiveAdmin.GetSportsAndLeaguesHidden(oListResp).SelectMany(item => new[] { item.SportId, item.LeagueId }).Distinct();
-                    gameList = gameList.Where(game => !oSportsAndLeaguesBlockedPlayer.Contains(game.SportId) && !oSportsAndLeaguesBlockedPlayer.Contains(game.LeagueId)).ToList();
-                    oListResp.RemoveAt(0);
-                    GetSportsAndLeaguesHiddenReq resSubAgent = new GetSportsAndLeaguesHiddenReq()
+                    var blockedSportLeagues = oLiveAdmin.GetSportsAndLeaguesHidden(request).ToList();
+                    
+                    foreach (var b in blockedSportLeagues)
                     {
-                        AgentId = oPlayerHierarchy.SubAgentId,
-                        PlayerId = null
+                        var sportId = b.SportId;
+                        var leagueId = b.LeagueId;
 
-                    };
-                    oListResp.Add(resSubAgent);
-                    var oSportsAndLeaguesBlockedSubAgent = oLiveAdmin.GetSportsAndLeaguesHidden(oListResp).SelectMany(item => new[] { item.SportId, item.LeagueId }).Distinct();
-                    gameList = gameList.Where(game => !oSportsAndLeaguesBlockedSubAgent.Contains(game.SportId) && !oSportsAndLeaguesBlockedSubAgent.Contains(game.LeagueId)).ToList();
-                    oListResp.RemoveAt(0);
-                    GetSportsAndLeaguesHiddenReq resMaster = new GetSportsAndLeaguesHiddenReq()
-                    {
-                        AgentId = oPlayerHierarchy.MasterAgentId,
-                        PlayerId = null
-                    };
-                    oListResp.Add(resMaster);
-                    var oSportsAndLeaguesBlockedMaster = oLiveAdmin.GetSportsAndLeaguesHidden(oListResp).SelectMany(item => new[] { item.SportId, item.LeagueId }).Distinct();
-                    gameList = gameList.Where(game => !oSportsAndLeaguesBlockedMaster.Contains(game.SportId) && !oSportsAndLeaguesBlockedMaster.Contains(game.LeagueId)).ToList();
-                    oListResp.RemoveAt(0);
-
+                        if (sportId != null && leagueId == null)
+                        {
+                            // remover deporte
+                            gameList = gameList.Where(g => g.SportId != sportId).ToList();
+                        }
+                        else
+                            // remover la liga
+                            gameList = gameList.Where(g => g.LeagueId != leagueId).ToList();
+                    }
+                    
+                    
                     foreach (var game in gameList)
                     {
                         var oGameDGS = GetInfoPrematchDGS(game.FixtureId);
