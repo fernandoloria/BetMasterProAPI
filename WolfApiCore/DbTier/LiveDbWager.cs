@@ -43,7 +43,11 @@ namespace WolfApiCore.DbTier
             {
                 foreach (var selection in fixture.Selections)
                 {
-                    cl.Add(new CheckListLines { FixtureId = fixture.FixtureId, MarketId = selection.MarketId, BetId = Convert.ToInt64(selection.IdL1) });
+                    cl.Add(new CheckListLines { 
+                        FixtureId = fixture.FixtureId, 
+                        MarketId = selection.MarketId, 
+                        BetId = Convert.ToInt64(selection.IdL1) 
+                    });
                 }
             }
 
@@ -257,19 +261,19 @@ namespace WolfApiCore.DbTier
             return factor;
         }
 
-        public decimal StraightCalculateWin(int odd, decimal risk)
+        public decimal StraightCalculateWin(int odd, decimal risk)   
         {
             decimal win = 0;
 
             try
             {
-                if (odd < 0) //negativo
+                if (odd < 0) //negativo -110
                 {
-                    win = -1 * ((100 * risk) / odd);
+                    win = -1 * ((100 * risk) / odd);  // R: 110 to Win: 100
                 }
-                else
+                else // positivo +110
                 {
-                    win = (odd * risk) / 100;
+                    win = (odd * risk) / 100;  // R:100 to Win: 110
                 }
             }
             catch (Exception)
@@ -875,11 +879,11 @@ namespace WolfApiCore.DbTier
                 decimal winAmount = (decimal)straightWager.PropSelected!.BsWinAmount!;
                 decimal riskAmount = (decimal)straightWager.PropSelected.BsRiskAmount!;
 
-                if (straightWager.PropSelected.StatusForWager == 9)
-                { //linea cambio, igual para win and risk
+                //RLM:2024.06.26, Recalcular SIEMPRE! el WinAmount 
+                //if (straightWager.PropSelected.StatusForWager == 9) //linea cambio, igual para win and risk
+                {
 
-                    // si odds es negativo afectamos el risk
-                    // si odds es positivo afectamos el win
+                    // recalcualr el win
                     winAmount = StraightCalculateWin((int)straightWager.PropSelected.Odds1!, (decimal)straightWager.PropSelected.BsRiskAmount);
                 }
 
@@ -1985,6 +1989,8 @@ namespace WolfApiCore.DbTier
 
                                                 // Dejamos en AlternateId el Id de la nueva linea
                                                 item.BetInfo.AlternateId = item.BetInfo.Id;  //nueva Id de linea
+
+                                                
                                             }
                                         }
                                     }
