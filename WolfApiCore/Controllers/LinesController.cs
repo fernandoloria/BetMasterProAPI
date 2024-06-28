@@ -144,7 +144,47 @@ namespace WolfApiCore.Controllers
             return Ok(player);
         }
 
+        [HttpGet("GetAccessStreamPlayer/{base64Code}")]
+        public IActionResult GetAccessStream(string base64Code)
+        {
+            if (!_base64Service.IsBase64String(base64Code))
+            {
+                return BadRequest(new
+                {
+                    code = "UNKNOWN_ERROR",
+                    message = "An unknown error occurred."
+                });
+            }
 
+            string idPlayerAndIdCall = _base64Service.DecodeBase64(base64Code);
+
+            if (idPlayerAndIdCall.IsNullOrEmpty())
+            {
+
+                return BadRequest(new
+                {
+                    code = "UNKNOWN_ERROR",
+                    message = "An unknown error occurred."
+                });
+            }
+
+            List<string> idsOfPlayer = idPlayerAndIdCall.Split('|').ToList();
+
+            string idPlayer = idsOfPlayer[0]; 
+
+            if (!int.TryParse(idPlayer, out var parsedIdPlayer))
+            {
+                return Conflict(new
+                {
+                    code = "WRONG_INT_FORMAT",
+                    message = "The value provided is not a valid integer"
+                });
+            }
+
+            var connString = _configuration.GetValue<string>("SrvSettings:DbConnMover");
+            var resultData = new LiveDbClass(connString).GetAccessStream(int.Parse(idPlayer));
+            return Ok(resultData);
+        }
 
         //[HttpGet("test")]
         //public FixtureApiDto test()
