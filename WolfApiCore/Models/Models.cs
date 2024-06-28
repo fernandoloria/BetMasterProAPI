@@ -277,7 +277,7 @@
     }
 
 
-    //RLM: aplanar el juego con los markets y lineas       
+    //RLM: aplanar el juego con los markets y lineas, extends LSportsGameDTO       
     public class GameMarketAndLinesDTO: LSportGameDto
     {
         public Int64 Id { get; set; } //lineId

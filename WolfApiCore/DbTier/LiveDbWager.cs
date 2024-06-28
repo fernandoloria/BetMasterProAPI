@@ -43,7 +43,11 @@ namespace WolfApiCore.DbTier
             {
                 foreach (var selection in fixture.Selections)
                 {
-                    cl.Add(new CheckListLines { FixtureId = fixture.FixtureId, MarketId = selection.MarketId, BetId = Convert.ToInt64(selection.IdL1) });
+                    cl.Add(new CheckListLines { 
+                        FixtureId = fixture.FixtureId, 
+                        MarketId = selection.MarketId, 
+                        BetId = Convert.ToInt64(selection.IdL1) 
+                    });
                 }
             }
 
@@ -257,19 +261,19 @@ namespace WolfApiCore.DbTier
             return factor;
         }
 
-        public decimal StraightCalculateWin(int odd, decimal risk)
+        public decimal StraightCalculateWin(int odd, decimal risk)   
         {
             decimal win = 0;
 
             try
             {
-                if (odd < 0) //negativo
+                if (odd < 0) //negativo -110
                 {
-                    win = -1 * ((100 * risk) / odd);
+                    win = -1 * ((100 * risk) / odd);  // R: 110 to Win: 100
                 }
-                else
+                else // positivo +110
                 {
-                    win = (odd * risk) / 100;
+                    win = (odd * risk) / 100;  // R:100 to Win: 110
                 }
             }
             catch (Exception)
@@ -536,8 +540,10 @@ namespace WolfApiCore.DbTier
                     LeagueId = null,
                     FixtureId = null
                 };
+
                 // Validate first the Player - Sport //
                 var oLimitsSport = oAdminClass.GetProfileLimitsByIdPlayer(oReq);
+
                 if (oLimitsSport != null)
                 {
                     resp.IsSportLimit = true;
@@ -564,8 +570,6 @@ namespace WolfApiCore.DbTier
                         resp.MinWager = oLimitsLeague.MinWager;
                         resp.MaxWager = oLimitsLeague.MaxWager;
                         resp.MaxPayout = oLimitsLeague.MaxPayout;
-
-
 
                         resp.MinPrice = oLimitsLeague.MinPrice;
                         resp.MaxPrice = oLimitsLeague.MaxPrice;
@@ -833,13 +837,31 @@ namespace WolfApiCore.DbTier
 
         private string GetFixtureName(WagerDetailCompleteDescriptionModel detailDescription) 
         {
-            string homeTeam = GetShortName(detailDescription?.HomeTeam);
-            string visitorTeam = GetShortName(detailDescription?.VisitorTeam);
+            bool isTournament = IsSportWithTournament(detailDescription.FixtureId!);
+            var fixtureName = "";
 
-            bool isTournament = IsSportWithTournament(detailDescription!.FixtureId!);
+            if (!isTournament)
+            {
+                //RLM:2024.05.10, Fix, si alguno de los equipos viene vacio, buscar el nombre en bd
+                if (detailDescription.HomeTeam == "" || detailDescription.VisitorTeam == "")
+                {
+                    var participants = new LiveDbClass(MoverConnString).GetParticipants(detailDescription.FixtureId);
+                    
+                    if (detailDescription.HomeTeam == "")
+                       detailDescription.HomeTeam = participants?.Where(p => p.Position == 1).FirstOrDefault()?.Name;
+
+                    if (detailDescription.VisitorTeam == "")
+                       detailDescription.VisitorTeam = participants?.Where(p => p.Position == 2).FirstOrDefault()?.Name;                    
+                }
+
+                string homeTeam = GetShortName(detailDescription.HomeTeam!);
+                string visitorTeam = GetShortName(detailDescription.VisitorTeam!);
+
+                fixtureName = $"{homeTeam} vs {visitorTeam}";                
+            }
 
 
-            return $"{(isTournament? detailDescription.LeagueName! : $"{homeTeam} vs {visitorTeam}")}"; 
+            return $"{(isTournament? detailDescription.LeagueName! : fixtureName)}"; 
         }
 
         private string GetSportName(WagerDetailCompleteDescriptionModel detailDescription) 
@@ -857,11 +879,11 @@ namespace WolfApiCore.DbTier
                 decimal winAmount = (decimal)straightWager.PropSelected!.BsWinAmount!;
                 decimal riskAmount = (decimal)straightWager.PropSelected.BsRiskAmount!;
 
-                if (straightWager.PropSelected.StatusForWager == 9)
-                { //linea cambio, igual para win and risk
+                //RLM:2024.06.26, Recalcular SIEMPRE! el WinAmount 
+                //if (straightWager.PropSelected.StatusForWager == 9) //linea cambio, igual para win and risk
+                {
 
-                    // si odds es negativo afectamos el risk
-                    // si odds es positivo afectamos el win
+                    // recalcualr el win
                     winAmount = StraightCalculateWin((int)straightWager.PropSelected.Odds1!, (decimal)straightWager.PropSelected.BsRiskAmount);
                 }
 
@@ -1967,6 +1989,8 @@ namespace WolfApiCore.DbTier
 
                                                 // Dejamos en AlternateId el Id de la nueva linea
                                                 item.BetInfo.AlternateId = item.BetInfo.Id;  //nueva Id de linea
+
+                                                
                                             }
                                         }
                                     }
