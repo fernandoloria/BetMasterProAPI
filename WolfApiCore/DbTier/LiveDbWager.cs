@@ -2014,7 +2014,8 @@ namespace WolfApiCore.DbTier
 
         private string GetShortName(string teamName) 
         {
-            if(string.IsNullOrEmpty(teamName))
+            teamName = teamName.Trim();
+            if (string.IsNullOrEmpty(teamName))
                 return "";
 
             var teamWords = teamName.Split(" ");
