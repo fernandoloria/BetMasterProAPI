@@ -26,10 +26,10 @@ namespace WolfApiCore.Stream
         {
             switch (notification.type) {
                 case 1:
-                case 2: StreamDbClass.PushNotification(notification);
+                case 2: StreamDbClass.PushNotification(notification); //insert, update
                     break;
 
-                case 3: StreamDbClass.DeleteNotification(notification);
+                case 3: StreamDbClass.DeleteNotification(notification);//delete
                     break;
 
                 default: throw new Exception("Unknown notification type");
