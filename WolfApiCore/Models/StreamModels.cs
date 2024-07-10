@@ -28,4 +28,17 @@ namespace WolfApiCore.Models
     {
         public List<MatchList> MatchList { get; set; }
     }
+
+    public class BroadcastNotification
+    {
+        public string sport_name { get; set; }
+        public string league_name { get; set; }
+        public int event_id { get; set; }
+        public string team1 { get; set; }
+        public string team2 { get; set; }
+        public string date { get; set; }
+        public int ts { get; set; }
+        public string broadcast { get; set; }
+        public int type { get; set; }
+    }
 }
