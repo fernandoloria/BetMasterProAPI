@@ -14,7 +14,11 @@
         {
             int id = CLIENT_ID;
             int validMinutes = VALID_MINUTES;
-            string today = DateTime.UtcNow.ToString("M/d/yyyy h:mm:ss tt");
+            
+            //UTC0
+            string today = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"); //string today = DateTime.UtcNow.ToString("M/d/yyyy h:mm:ss tt");
+
+
             string key = SECRET_KEY;
             string str2hash = id + key + today + validMinutes;
 
@@ -34,7 +38,7 @@
                 byte[] urlSignatureBytes = Encoding.UTF8.GetBytes(urlSignature);
                 string base64Signature = Convert.ToBase64String(urlSignatureBytes);
 
-                return base64Signature;
+                return $"SIGNATURE: {base64Signature} HASH:{str2hash} HASH_BYTES:{hashBytes}";
             }
         }
     }

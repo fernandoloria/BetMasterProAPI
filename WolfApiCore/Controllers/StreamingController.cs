@@ -14,8 +14,7 @@ namespace WolfApiCore.Controllers
         [HttpPost("PushNotification")]
         public IActionResult PushNotification(BroadcastNotification notification)
         {
-            try
-            {
+            try {
                 new StreamService().PushNotification(notification);
                 return Ok("Notification Push Succesfull");
             }
@@ -23,5 +22,13 @@ namespace WolfApiCore.Controllers
                 return BadRequest(ex.Message);
             }   
         }
+
+        [HttpGet("GetSignature")]
+        public string GetSignature()
+        {
+            return new SignatureGenerator().GenerateSignature();
+        }
+
+        
     }
 }
