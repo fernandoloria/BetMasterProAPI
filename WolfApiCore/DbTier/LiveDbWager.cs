@@ -59,9 +59,9 @@ namespace WolfApiCore.DbTier
                 foreach (var item in fixture.Selections)
                 {
                     var snapshotItem = lsportSnapshot.FirstOrDefault(s => s.BetId == Convert.ToInt64(item.IdL1));
-                    if (null != snapshotItem)
+                    if (null != snapshotItem && item.BsRiskAmount != null)
                     {
-                        var dbProp = ValidateBetSlipItem(item, snapshotItem.BetInfo, betslip.AcceptLineChange, fixture.FixtureId, betslip.IdPlayer, item.MarketId);                       
+                        var dbProp = ValidateBetSlipItem(item, snapshotItem.BetInfo, betslip.AcceptLineChange, fixture.FixtureId, betslip.IdPlayer, item.MarketId);
 
                         if (dbProp.StatusForWager != 9 && dbProp.StatusForWager != 10)
                             validForParlay = false;
@@ -103,7 +103,7 @@ namespace WolfApiCore.DbTier
                                 {
                                     item.BsMessage = "Wager Rejected";
                                 }
-                                
+
                             }
                         }
                     }
@@ -887,6 +887,9 @@ namespace WolfApiCore.DbTier
                     winAmount = StraightCalculateWin((int)straightWager.PickSelected.Odds1!, (decimal)straightWager.PickSelected.BsRiskAmount);
                 }
 
+                string formatBsWinAmount = straightWager.PickSelected!.BsWinAmount!.Value.ToString("0.##");
+                winAmount = decimal.Parse(formatBsWinAmount);
+
                 straightWager.PickSelected.BsRiskAmount = riskAmount;
                 straightWager.PickSelected.BsWinAmount = winAmount;
 
@@ -978,6 +981,9 @@ namespace WolfApiCore.DbTier
 
                 decimal winAmount = ParlayCalculateWin(betslipObj);
                 decimal riskAmount = betslipObj.ParlayRiskAmount;
+
+                string formatWinAmount = winAmount.ToString("0.##");
+                winAmount = decimal.Parse(formatWinAmount);
 
                 betslipObj.ParlayRiskAmount = riskAmount;
                 betslipObj.ParlayWinAmount = winAmount;
