@@ -145,6 +145,40 @@ namespace WolfApiCore.DbTier
                 {
                     foreach (var selection in fixture.Selections)
                     {
+                        var snapshotItem = lsportSnapshot.FirstOrDefault(s => s.BetId == Convert.ToInt64(selection.IdL1));
+                        if (null != snapshotItem && selection.BsRiskAmount == null)
+                        {
+                            if (snapshotItem != null && snapshotItem.BetInfo!.Status! == 1 /*Line Open*/)
+                            {
+                                if (int.Parse(snapshotItem.BetInfo!.PriceUS) == selection.Odds1 &&
+                                    snapshotItem.BetInfo!.Line == selection.Line1)
+                                {
+                                    selection.StatusForWager = 10;  //ready for wager
+                                    selection.BaseLine = snapshotItem.BetInfo!.BaseLine;
+                                }
+                                else
+                                {
+                                    selection.StatusForWager = 10;
+                                    selection.Odds1 = int.Parse(snapshotItem.BetInfo!.PriceUS);
+                                    selection.Price = Convert.ToDecimal(snapshotItem.BetInfo!.Price);
+                                    selection.Line1 = snapshotItem.BetInfo!.Line;
+                                    selection.BaseLine = snapshotItem.BetInfo!.BaseLine;
+                                    selection.BsBetResult = -51;
+                                    selection.BsMessage = "Line Change Detected.";
+                                    selection.IdL2 = (null != snapshotItem.BetInfo!.AlternateId) ? snapshotItem.BetInfo!.AlternateId.ToString() : "";
+                                }
+                            }
+                            else
+                            {
+                                //linea cerrada
+                                selection.BsBetResult = -52;
+                                selection.StatusForWager = 5;
+                                selection.BsMessage = "Line closed";
+                            }
+
+
+                        }
+
                         var totalAmountValue = GetTotalValuePerGame(betslip.IdPlayer, fixture.FixtureId, selection.MarketId) + betslip.ParlayRiskAmount;
                         if (totalAmountValue > totAmtPerGame)
                         {
@@ -177,7 +211,7 @@ namespace WolfApiCore.DbTier
                     betslip.ParlayBetResult = -50;
                     betslip.ParlayMessage = $"Parlay exceeds Max Win amount. (Max = {maxWinAmount:F0})";
                 }
-                else
+                else if(betslip.ParlayBetResult == 0)
                 {
                     var obj = CreateParlayWager(betslip);
                     betslip.ParlayBetResult = obj.ParlayBetResult;
