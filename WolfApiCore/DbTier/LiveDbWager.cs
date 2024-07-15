@@ -59,7 +59,7 @@ namespace WolfApiCore.DbTier
                 foreach (var item in fixture.Selections)
                 {
                     var snapshotItem = lsportSnapshot.FirstOrDefault(s => s.BetId == Convert.ToInt64(item.IdL1));
-                    if (null != snapshotItem && item.BsRiskAmount != null)
+                    if (null != snapshotItem && item.BsRiskAmount != null && item.BsBetResult != 1000)
                     {
                         var dbProp = ValidateBetSlipItem(item, snapshotItem.BetInfo, betslip.AcceptLineChange, fixture.FixtureId, betslip.IdPlayer, item.MarketId);
 
@@ -155,6 +155,8 @@ namespace WolfApiCore.DbTier
                                     snapshotItem.BetInfo!.Line == selection.Line1)
                                 {
                                     selection.StatusForWager = 10;  //ready for wager
+                                    selection.BsMessage = "";
+                                    selection.BsBetResult = 0;
                                     selection.BaseLine = snapshotItem.BetInfo!.BaseLine;
                                 }
                                 else
