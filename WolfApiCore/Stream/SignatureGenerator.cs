@@ -16,7 +16,9 @@
             int validMinutes = VALID_MINUTES;
             
             //UTC0
-            string today = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"); //string today = DateTime.UtcNow.ToString("M/d/yyyy h:mm:ss tt");
+            //string today = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"); 
+            //string today = DateTime.UtcNow.ToString("M/d/yyyy h:mm:ss tt");
+            string today = DateTime.UtcNow.ToString("yyyy-MMM-dd HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
 
 
             string key = SECRET_KEY;
