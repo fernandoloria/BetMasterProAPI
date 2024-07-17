@@ -1352,40 +1352,8 @@ namespace WolfApiCore.DbTier
             return locationName.Contains(locationNameExceptions[0]);
         }
 
-        public GetAccessStreamDTO GetAccessStream(int idPlayer)
-        {
-            var response = new GetAccessStreamDTO();
-
-            try
-            {
-                string sql = "exec sp_MGL_StreamAccess  @idplayer ";
-                var values = new { idplayer = idPlayer };
-
-                using var connection = new SqlConnection(connString);
-
-                var responseSQL = connection.Query<GetAccessStreamDTO>(sql, values).First();
-
-                response.Access = responseSQL.Access;
-                response.Message = responseSQL.Message;
-            }
-            catch (Exception ex)
-            {
-                response.Message = "An internal error has occurred";
-                response.Access = false;
-                return response;
-            }
-
-            return response;
-
-        }
 
     }//end class
-
-    public class GetAccessStreamDTO
-    {
-        public bool Access { get; set; }
-        public string Message { get; set; }
-    }
 
     public class OpenBetsDTO {
         public int IdPlayer { get; set; }

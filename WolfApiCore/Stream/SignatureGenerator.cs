@@ -40,7 +40,7 @@
                 byte[] urlSignatureBytes = Encoding.UTF8.GetBytes(urlSignature);
                 string base64Signature = Convert.ToBase64String(urlSignatureBytes);
 
-                return $"SIGNATURE: {base64Signature} HASH:{str2hash} HASH_BYTES:{hashBytes}";
+                return base64Signature;
             }
         }
     }

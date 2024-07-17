@@ -29,6 +29,11 @@ namespace WolfApiCore.Controllers
             return new SignatureGenerator().GenerateSignature();
         }
 
-        
+        [HttpPost("GetStreamAccess")]
+        public GetStreamAccessDTO GetStreamAccess(RequestStreamAccess request)
+        {
+            return StreamDbClass.GetStreamAccess(request);
+        }
+
     }
 }
