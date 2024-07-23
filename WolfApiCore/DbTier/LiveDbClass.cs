@@ -4,6 +4,7 @@ using Microsoft.Data.SqlClient;
 using System.Collections.Immutable;
 using System.Data;
 using WolfApiCore.Models;
+using WolfApiCore.Utilities;
 using static WolfApiCore.Models.AdminModels;
 
 namespace WolfApiCore.DbTier
@@ -57,6 +58,8 @@ namespace WolfApiCore.DbTier
 
             try
             {
+                MarketReplace.LoadMarketsList(this);
+
                 using var connection = new SqlConnection(connString);
                 games = connection.Query<LSportGameDto>(sql/*, values*/).ToList();
 
@@ -78,7 +81,7 @@ namespace WolfApiCore.DbTier
 
         public List<LSportGameDto> GetSignalEvents()
         {
-            var signalEvents = new List<LSportGameDto>();    
+            var signalEvents = new List<LSportGameDto>();
             try
             {
                 using var connection = new SqlConnection(connString);
@@ -89,7 +92,7 @@ namespace WolfApiCore.DbTier
                 {
                     //get markets/lines
                     game.PropMarkets = ConvertToScreenProps(
-                                            GetEventsMarketsLines(game.FixtureId, game.SportId), 
+                                            GetEventsMarketsLines(game.FixtureId, game.SportId),
                                             game.FixtureId
                                        );
 
@@ -106,11 +109,13 @@ namespace WolfApiCore.DbTier
         }//end GetAllScores
 
 
-        
+
         public List<LSportGameDto> GetSignalEventsV2()
-        {
+        {   
             var signalEvents = new List<GameMarketAndLinesDTO>();
             var gamesDTO = new List<LSportGameDto>();
+
+            MarketReplace.LoadMarketsList(this);
 
             try
             {
@@ -123,7 +128,7 @@ namespace WolfApiCore.DbTier
                 var fixtures = signalEvents.GroupBy(e => e.FixtureId);
 
                 foreach (var fixtureGroup in fixtures)
-                { 
+                {
                     var fixture = fixtureGroup.First();
 
                     var game = new LSportGameDto
@@ -161,7 +166,7 @@ namespace WolfApiCore.DbTier
                         TotalLines = fixture.TotalLines,
                         IsTournament = fixture.IsTournament,
                         PropMarkets = new List<LSport_EventPropMarketDto>()
-                    };                    
+                    };
 
                     var markets = fixtureGroup.GroupBy(m => m.MarketId);
                     foreach (var marketGroup in markets)
@@ -180,7 +185,7 @@ namespace WolfApiCore.DbTier
                             AllowMarketParlay = market.AllowMarketParlay,
                             Explanation = market.Explanation,
                             Props = new List<LSport_EventPropDto>()
-                        };                        
+                        };
 
                         foreach (var linea in marketGroup)
                         {
@@ -192,7 +197,8 @@ namespace WolfApiCore.DbTier
                                 Line1 = linea.Line,
                                 MarketName = linea.MarketName,
                                 Odds1 = int.Parse(linea.PriceUS!),
-                                Name = linea.Name!.ToUpper(),
+                                Name = new MarketReplace(linea.MarketId, linea.Name!, game.HomeTeam!, game.VisitorTeam!).MarketReplace1X2(),
+                                        //linea.Name!.ToUpper(),
                                 IsSelected = false,
                                 BaseLine = FixBaseLineStr(linea.BaseLine),
                                 OriginalName = linea.Name,
@@ -241,7 +247,7 @@ namespace WolfApiCore.DbTier
                                gameEntry.PropMarkets = new List<LSport_EventPropMarketDto>();
                                fixturesDic.Add(gameEntry.FixtureId, gameEntry);
                                gamesDTO.Add(gameEntry);
-                           }                          
+                           }
 
 
                            var currentMarket = gameEntry.PropMarkets!.FirstOrDefault(m => m.MarketID == market.MarketID);
@@ -262,7 +268,7 @@ namespace WolfApiCore.DbTier
                                };
 
                                gameEntry.PropMarkets.Add(currentMarket);
-                           }                          
+                           }
 
                            currentMarket.Props.Add(new LSport_EventPropDto
                            {
@@ -284,7 +290,7 @@ namespace WolfApiCore.DbTier
                        splitOn: "MarketId, Id" // Especifica cómo dividir los resultados por cada objeto
                    );
 
-                   //gamesDTO = results.ToList();
+                    //gamesDTO = results.ToList();
                 }
             }
             catch (Exception ex)
@@ -343,7 +349,7 @@ namespace WolfApiCore.DbTier
                     });
 
                     var blockedSportLeagues = oLiveAdmin.GetSportsAndLeaguesHidden(request).ToList();
-                    
+
                     foreach (var b in blockedSportLeagues)
                     {
                         var sportId = b.SportId;
@@ -358,8 +364,8 @@ namespace WolfApiCore.DbTier
                             // remover la liga
                             gameList = gameList.Where(g => g.LeagueId != leagueId).ToList();
                     }
-                    
-                    
+
+
                     foreach (var game in gameList)
                     {
                         var oGameDGS = GetInfoPrematchDGS(game.FixtureId);
@@ -376,22 +382,22 @@ namespace WolfApiCore.DbTier
                                 game.PremiumGame = false;
                             }
                         }
-                        
+
 
                         if (game.TotalLines > 0)
                         {
                             var teams = GetParticipants(game.FixtureId);
                             if (teams != null)
                             {
-                                var homeTeam = teams.Where(x => x.Position == 1).FirstOrDefault();                                
-                                if (homeTeam != null) 
+                                var homeTeam = teams.Where(x => x.Position == 1).FirstOrDefault();
+                                if (homeTeam != null)
                                 {
                                     game.HomeTeam = homeTeam?.Name;
                                     game.HomeTeamId = Convert.ToInt32(homeTeam?.ParticipantId);
                                     game.HomeRotation = Convert.ToInt32(homeTeam?.Rot);
                                 }
 
-                                var visitorTeam = teams.Where(x => x.Position == 2).FirstOrDefault();                                
+                                var visitorTeam = teams.Where(x => x.Position == 2).FirstOrDefault();
                                 if (visitorTeam != null)
                                 {
                                     game.VisitorTeam = visitorTeam?.Name;
@@ -415,7 +421,7 @@ namespace WolfApiCore.DbTier
                                     LSport_ScreenLeagueDto lg = new LSport_ScreenLeagueDto()
                                     {
                                         ShowLeague = false,
-                                        LeagueName = $"{ (HasLocationNameException(game.LocationName) ? game.LeagueName : $"{game.LocationName} - {game.LeagueName}") }",   ///game.LeagueName + " - " + game.LocationName,
+                                        LeagueName = $"{(HasLocationNameException(game.LocationName) ? game.LeagueName : $"{game.LocationName} - {game.LeagueName}")}",   ///game.LeagueName + " - " + game.LocationName,
                                         LeagueId = game.LeagueId,
                                         IsTournament = game.IsTournament,
                                         Games = new List<LSportGameDto>()
@@ -431,7 +437,7 @@ namespace WolfApiCore.DbTier
                                 LSport_ScreenLeagueDto lg = new LSport_ScreenLeagueDto()
                                 {
                                     ShowLeague = false,
-                                    LeagueName = $"{ (HasLocationNameException(game.LocationName) ? game.LeagueName : $"{game.LocationName} - {game.LeagueName}") }", //game.LeagueName + " - " + game.LocationName,
+                                    LeagueName = $"{(HasLocationNameException(game.LocationName) ? game.LeagueName : $"{game.LocationName} - {game.LeagueName}")}", //game.LeagueName + " - " + game.LocationName,
                                     LeagueId = game.LeagueId,
                                     IsTournament = game.IsTournament,
                                     Games = new List<LSportGameDto>()
@@ -528,7 +534,7 @@ namespace WolfApiCore.DbTier
 
                     //Si no existe
                     if (sport == null)
-                    {                        
+                    {
                         sport = new LSport_ScreenSportsDto()
                         {
                             ShowSport = false,
@@ -539,15 +545,15 @@ namespace WolfApiCore.DbTier
                         };
 
                         //Agregar el deporte
-                        sportList.Add(sport); 
-                    }                                        
+                        sportList.Add(sport);
+                    }
 
                     //Buscar la liga
                     var league = sport!.Leagues.Where(l => l.LeagueId == game.LeagueId).FirstOrDefault();
 
                     //Si no existe
-                    if (league == null) 
-                    {                        
+                    if (league == null)
+                    {
                         league = new LSport_ScreenLeagueDto()
                         {
                             ShowLeague = false,
@@ -561,7 +567,7 @@ namespace WolfApiCore.DbTier
                     }
 
                     //Agregar el juego
-                    league.Games.Add(game);                    
+                    league.Games.Add(game);
                 }
             }
             catch (Exception ex)
@@ -983,17 +989,17 @@ namespace WolfApiCore.DbTier
         //}
 
         public string FixBaseLineStr(string baseline)
-        {            
+        {
             if (!String.IsNullOrEmpty(baseline))
-            {               
+            {
                 int index = baseline.IndexOf("#");
 
-                if (index >= 0)                
-                    baseline = baseline.Substring(0, index);                
+                if (index >= 0)
+                    baseline = baseline.Substring(0, index);
             }
 
             return baseline;
-        }
+        }        
 
         //este metodo toma el objeto de markets y lineas y lo convierten en el objeto de jerarquia Market -> hijos Lineas
         private List<LSport_EventPropMarketDto> ConvertToScreenProps(List<CompletePropMarket> gameLines, int FixtureId)
@@ -1001,6 +1007,10 @@ namespace WolfApiCore.DbTier
             //List<int> UnderOverProps = new List<int>(new int[] { 21, 28, 45, 46, 47, 77, 153, 155, 220, 221, 337, 354, 335, 430, 466, 916, 920, 927, 928, 1194, 1196, 1197, 1198, 1199, 1200, 1202, 1203, 1218, 1783, 2400, 2541 });
             //List<int> UnderOverProps = new List<int>(new int[] { 1196 });
             var participants = GetParticipants(FixtureId);
+
+            var homeTeam = participants.Where(p => p.Position == 1).FirstOrDefault()?.Name;
+            var visitorTeam = participants.Where(p => p.Position == 2).FirstOrDefault()?.Name;
+
             var resp = new List<LSport_EventPropMarketDto>();
             try
             {
@@ -1036,15 +1046,17 @@ namespace WolfApiCore.DbTier
                         Line1 = line.Line,
                         MarketName = line.MarketName,
                         Odds1 = int.Parse(line.PriceUS),
-                        Name = line.Name == "1" ? participants.Where(x => x.Position == 1).FirstOrDefault()?.Name 
-                             : line.Name == "2" ? participants.Where(x => x.Position == 2).FirstOrDefault()?.Name 
-                             : line.Name == "X" ? "DRAW" 
-                             : line.Name!.ToUpper(),
+                        Name = new MarketReplace(line.MarketId, line.Name!, homeTeam!, visitorTeam!).MarketReplace1X2(),
+                                /* line.Name == "1" ? homeTeam 
+                                 : line.Name == "2" ? visitorTeam
+                                 : line.Name == "X" ? "DRAW" 
+                                 : line.Name!.ToUpper(), */
+
                         IsSelected = false,
                         BaseLine = FixBaseLineStr(line.BaseLine),
                         OriginalName = line.Name,
                         Price = Convert.ToDecimal(line.Price)
-                    });
+                    }); ;
 
                     if(newMarket)
                         resp.Add(market);
@@ -1328,6 +1340,41 @@ namespace WolfApiCore.DbTier
             }
             return resp;
         }
+
+        public List<int> GetMarketReplaceAll1x2()
+        {
+            List<int> resp = new List<int>();
+            string sql = "exec sp_MGL_GetMarketReplace1x2 ";
+            try
+            {
+                using var connection = new SqlConnection(connString);
+                resp = connection.Query<int>(sql).ToList();
+            }
+            catch (Exception ex)
+            {
+                _ = ex.Message;
+            }
+            return resp;
+        }
+        
+        public List<int> GetMarketReplaceNever1x2()
+        {
+            List<int> resp = new List<int>();
+            string sql = "exec sp_MGL_GetMarketsReplaceNever1X2 ";
+            try
+            {
+                using var connection = new SqlConnection(connString);
+                resp = connection.Query<int>(sql).ToList();
+            }
+            catch (Exception ex)
+            {
+                _ = ex.Message;
+            }
+            return resp;
+        }
+
+        
+
 
         public void WriteSignalRUpdaterIP(string ipAddress)
         {
