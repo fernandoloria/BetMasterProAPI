@@ -434,7 +434,7 @@ namespace WolfApiCore.DbTier
                             }
                             else
                             {
-                                LSport_ScreenLeagueDto lg = new LSport_ScreenLeagueDto()
+                                LSport_ScreenLeagueDto league = new LSport_ScreenLeagueDto()
                                 {
                                     ShowLeague = false,
                                     LeagueName = $"{(HasLocationNameException(game.LocationName) ? game.LeagueName : $"{game.LocationName} - {game.LeagueName}")}", //game.LeagueName + " - " + game.LocationName,
@@ -442,16 +442,16 @@ namespace WolfApiCore.DbTier
                                     IsTournament = game.IsTournament,
                                     Games = new List<LSportGameDto>()
                                 };
-                                lg.Games.Add(game);
-                                LSport_ScreenSportsDto sl = new LSport_ScreenSportsDto()
+                                league.Games.Add(game);
+                                LSport_ScreenSportsDto sport = new LSport_ScreenSportsDto()
                                 {
                                     ShowSport = false,
                                     SportName = game.SportName,
                                     SportId = game.SportId,
                                     Leagues = new List<LSport_ScreenLeagueDto>()
                                 };
-                                sl.Leagues.Add(lg);
-                                EventSportLines.Add(sl);
+                                sport.Leagues.Add(league);
+                                EventSportLines.Add(sport);
                             }
                         }
                     }
@@ -1056,7 +1056,7 @@ namespace WolfApiCore.DbTier
                         BaseLine = FixBaseLineStr(line.BaseLine),
                         OriginalName = line.Name,
                         Price = Convert.ToDecimal(line.Price)
-                    }); ;
+                    }); 
 
                     if(newMarket)
                         resp.Add(market);

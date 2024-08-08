@@ -1,8 +1,13 @@
 ﻿using Dapper;
 using Microsoft.Data.SqlClient;
+using Newtonsoft.Json;
 using System.Data;
+using System.Diagnostics.Eventing.Reader;
+using System.Net;
 using WolfApiCore.Models;
 using WolfApiCore.Stream;
+using static System.Net.WebRequestMethods;
+
 
 namespace WolfApiCore.DbTier
 {
@@ -61,29 +66,41 @@ namespace WolfApiCore.DbTier
 
                 if (responseSQL.Access == true)
                 {
-                    string sqlStreamLinks = "exec sp_MGL_GetStreamLink @fixtureId ";
-                    
-                    var valuesUrlStream = new { fixtureId = request.FixtureId };
-                    var streamLinks = connection.Query<StreamLinksDTO>(sqlStreamLinks, valuesUrlStream);
-                    
-                    if (streamLinks != null)
+                    var integracionRusos = false;
+                    var integracionEZ = true;
+
+                    if (integracionRusos)
                     {
-                        foreach ( var streamLink in streamLinks)
+                        string sqlStreamLinks = "exec sp_MGL_GetStreamLink @fixtureId ";
+
+                        var valuesUrlStream = new { fixtureId = request.FixtureId };
+                        var streamLinks = connection.Query<StreamLinksDTO>(sqlStreamLinks, valuesUrlStream);
+
+                        if (streamLinks != null)
                         {
-                            if (
-                                (IsSimilarTeamName(request.homeTeam, streamLink.team1) || IsSimilarTeamName(request.homeTeam, streamLink.team2)) &&
-                                (IsSimilarTeamName(request.visitorTeam, streamLink.team1) || IsSimilarTeamName(request.visitorTeam, streamLink.team2))
-                                )
+                            foreach (var streamLink in streamLinks)
                             {
+                                if (
+                                    (IsSimilarTeamName(request.homeTeam, streamLink.team1) || IsSimilarTeamName(request.homeTeam, streamLink.team2)) &&
+                                    (IsSimilarTeamName(request.visitorTeam, streamLink.team1) || IsSimilarTeamName(request.visitorTeam, streamLink.team2))
+                                    )
+                                {
 
-                                var paramSign = "?wmsAuthSign=";
-                                var sign = new SignatureGenerator().GenerateSignature();
-                                response.Url = streamLink.broadcast + paramSign + sign;
+                                    var paramSign = "?wmsAuthSign=";
+                                    var sign = new SignatureGenerator().GenerateSignature();
+                                    response.Url = streamLink.broadcast + paramSign + sign;
 
+                                }
                             }
                         }
                     }
+                    else if (integracionEZ)
+                    {
+                        var streamList = getEzStreamList();
 
+                        
+
+                    }
                 }
 
             }
@@ -96,6 +113,24 @@ namespace WolfApiCore.DbTier
 
             return response;
 
+        }
+
+        public static EzStreamModel getEzStreamList()
+        {
+            try
+            {
+                var serviceUrl = "https://api-wolf.player-us.xyz/stream-list-v2/?tv=usa"; 
+                WebClient wc = new WebClient();
+                string result = wc.DownloadString(serviceUrl);
+
+                var list = JsonConvert.DeserializeObject<EzStreamModel>(result);
+
+                return list;
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
         }
 
         private static bool IsSimilarTeamName(string teamname, string other)
