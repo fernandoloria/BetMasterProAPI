@@ -2,12 +2,9 @@
 using Microsoft.Data.SqlClient;
 using Newtonsoft.Json;
 using System.Data;
-using System.Diagnostics.Eventing.Reader;
 using System.Net;
 using WolfApiCore.Models;
 using WolfApiCore.Stream;
-using static System.Net.WebRequestMethods;
-
 
 namespace WolfApiCore.DbTier
 {
@@ -81,8 +78,8 @@ namespace WolfApiCore.DbTier
                             foreach (var streamLink in streamLinks)
                             {
                                 if (
-                                    (IsSimilarTeamName(request.homeTeam, streamLink.team1) || IsSimilarTeamName(request.homeTeam, streamLink.team2)) &&
-                                    (IsSimilarTeamName(request.visitorTeam, streamLink.team1) || IsSimilarTeamName(request.visitorTeam, streamLink.team2))
+                                    (IsSimilarTeamName(request.HomeTeam, streamLink.team1) || IsSimilarTeamName(request.HomeTeam, streamLink.team2)) &&
+                                    (IsSimilarTeamName(request.VisitorTeam, streamLink.team1) || IsSimilarTeamName(request.VisitorTeam, streamLink.team2))
                                     )
                                 {
 
@@ -97,8 +94,55 @@ namespace WolfApiCore.DbTier
                     else if (integracionEZ)
                     {
                         var streamList = getEzStreamList();
+                        var participants = GetParticipantsByFixture(request.FixtureId);
 
-                        
+                        if (request.Sportname == "Football")
+                        {
+                            request.Sportname = "american_football";
+                        }
+                        if (request.Sportname == "Soccer")
+                        {
+                            request.Sportname = "Football";
+                        }
+
+                        request.Sportname = request.Sportname.Replace(" ", "_");
+
+                        foreach (var sport in streamList.Sports) //recorre la lista de deportes
+                        {
+                            if (sport.Key.ToUpper() == request.Sportname.ToUpper())
+                            {
+                                var sportEvents = sport.Value.Events;
+
+                                foreach (var events in sportEvents) //recorre los eventos del deporte
+                                {
+                                    var game = events.Value;
+                                    var homeTeam = game.competitiors.Home;
+                                    var visitorTeam = game.competitiors.Away;
+
+                                    //busqueda por rotNumber
+                                    foreach (var participant in participants)
+                                    {
+                                        if (participant.Rot !=0 && participant.Rot == int.Parse(game.Donbest_Id))
+                                        {
+                                            response.Url = $"https://wolf.player-us.xyz/tv/?stream_id={game.Stream_Id}";
+                                            return response;
+                                        }
+                                    }
+
+                                    //busqueda por nombre
+                                    if ( IsSimilarTeamNameEZ(request.HomeTeam, homeTeam) || IsSimilarTeamNameEZ(request.VisitorTeam, visitorTeam) ||
+                                        IsSimilarTeamNameEZ(request.VisitorTeam, homeTeam) || IsSimilarTeamNameEZ(request.HomeTeam, visitorTeam)
+                                    )
+                                    {
+                                        response.Url = $"https://wolf.player-us.xyz/tv/?stream_id={game.Stream_Id}";
+                                        return response;
+                                    }
+
+                                }
+
+ 
+                            }
+                        }
 
                     }
                 }
@@ -112,6 +156,32 @@ namespace WolfApiCore.DbTier
             }
 
             return response;
+
+        }
+
+        public static List<ResponseGetParticipants> GetParticipantsByFixture(int fixtureId)
+        {
+            try
+            {
+                var valuesSp = new { FixtureId = fixtureId };
+                using var connection = new SqlConnection(moverConnString);
+                string sqlGetParticipants = "exec sp_Live_GetParticipants @FixtureId ";
+
+                var participant = connection.Query<ResponseGetParticipants>(sqlGetParticipants, valuesSp);
+
+                List<ResponseGetParticipants> response = new List<ResponseGetParticipants>();
+                foreach (var item in participant)
+                {
+                    response.Add(item);
+                }
+
+                return response;
+
+            }
+            catch(Exception ex) 
+            {
+                throw new Exception("An error occurred to get participants");
+            }
 
         }
 
@@ -133,6 +203,34 @@ namespace WolfApiCore.DbTier
             }
         }
 
+        //ez
+        public static IEnumerable<string> GenerateNGrams(string text, int nGramLength)
+        {
+            for (int i = 0; i <= text.Length - nGramLength; i++)
+            {
+                yield return text.Substring(i, nGramLength);
+            }
+        }
+
+        //ez
+        public static bool IsSimilarTeamNameEZ(string team1, string team2, int nGramLength = 2, double similarityThreshold = 0.5)
+        {
+            // Genera n-gramas para ambos textos
+            var nGramsFirstText = new HashSet<string>(GenerateNGrams(team1.ToLower().Trim(), nGramLength));
+            var nGramsSecondText = new HashSet<string>(GenerateNGrams(team2.ToLower().Trim(), nGramLength));
+
+            // Calcula la intersección y la unión de los conjuntos de n-gramas
+            var commonNGrams = nGramsFirstText.Intersect(nGramsSecondText).Count();
+            var allNGrams = nGramsFirstText.Union(nGramsSecondText).Count();
+
+            // Calcula la similitud como el cociente de la intersección sobre la unión
+            double similarity = (double)commonNGrams / allNGrams;
+
+            // Devuelve true si la similitud supera el umbral, false en caso contrario
+            return similarity >= similarityThreshold;
+        }
+
+        //rusos
         private static bool IsSimilarTeamName(string teamname, string other)
         {
             if (string.IsNullOrWhiteSpace(teamname) || string.IsNullOrWhiteSpace(other))
@@ -149,7 +247,7 @@ namespace WolfApiCore.DbTier
             // Devuelve true si la similitud es suficiente (menos de 40% de diferencia)
             return (double)distance / maxLength < 0.4;
         }
-
+        //rusos
         private static int LevenshteinDistance(string a, string b)
         {
             int[,] matrix = new int[b.Length + 1, a.Length + 1];
@@ -178,12 +276,21 @@ namespace WolfApiCore.DbTier
 
     }
 
+    public class ResponseGetParticipants
+    {
+        public int ParticipantId { get; set; }
+        public string Name { get; set; }
+        public int Position { get; set; }
+        public int Rot { get; set; }
+    }
+
     public class RequestStreamAccess
     {
         public int FixtureId { get; set; }
         public int IdPlayer { get; set; }
-        public string homeTeam { get; set; } = string.Empty;
-        public string visitorTeam { get; set; } = string.Empty;
+        public string HomeTeam { get; set; } = string.Empty;
+        public string VisitorTeam { get; set; } = string.Empty;
+        public string Sportname { get; set; } = string.Empty;
 
     }
 
