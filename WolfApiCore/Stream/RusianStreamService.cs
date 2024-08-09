@@ -37,6 +37,7 @@ namespace WolfApiCore.Stream
 
     public class RusianStreamService
     {
+
         private static  readonly int CLIENT_ID = 24;
         private static readonly string SECRET_KEY = "8WutOzFS6NIi3lm5";
         private static readonly int VALID_MINUTES = 1;
