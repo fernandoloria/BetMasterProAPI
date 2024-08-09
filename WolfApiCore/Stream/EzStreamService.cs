@@ -29,11 +29,12 @@ namespace WolfApiCore.Stream
             {
                 var participants = new LiveDbClass().GetParticipants(request.FixtureId);
 
+                
                 foreach (var sportEvent in sport.Value.Events)
                 {
-                    var game = sportEvent.Value;
                     var encontro = false;
-
+                    var game = sportEvent.Value;
+                   
                     // Buscar por RotNumber
                     if (participants.Any(p => p.Rot != 0 && p.Rot == int.Parse(game.Donbest_Id)))
                         encontro = true;
@@ -43,14 +44,20 @@ namespace WolfApiCore.Stream
                         var homeTeam = game.competitiors.Home;
                         var visitorTeam = game.competitiors.Away;
                         encontro =
-                            IsSimilarTeamName(request.HomeTeam, homeTeam) ||
-                            IsSimilarTeamName(request.VisitorTeam, visitorTeam) ||
-                            IsSimilarTeamName(request.VisitorTeam, homeTeam) ||
-                            IsSimilarTeamName(request.HomeTeam, visitorTeam);
+                            // que el home sea similar
+                            (IsSimilarTeamName(request.HomeTeam, homeTeam) ||
+                             IsSimilarTeamName(request.HomeTeam, visitorTeam))
+                            &&
+                            // y el visitor tambien
+                            (IsSimilarTeamName(request.VisitorTeam, visitorTeam) ||
+                             IsSimilarTeamName(request.VisitorTeam, homeTeam));
                     }
 
                     if (encontro)
+                    {
                         URL = EzStreamEventURL + game.Stream_Id;
+                        break;
+                    }
                 }
             }
             return URL;
