@@ -2,32 +2,23 @@
 
 namespace WolfApiCore.Models
 {
-    public class MatchList
+    public class RequestStreamAccess
     {
-        public string Count { get; set; }
-        public string Live { get; set; }
-        public string Sport { get; set; }
-        public string League { get; set; }
-
-        [JsonProperty("P-iddd")]
-        public string Piddd { get; set; }
-        public string MatchId { get; set; }
-        public string T1 { get; set; }
-        public string T2 { get; set; }
-        public string MatchName { get; set; }
-        public string Team1Image { get; set; }
-        public string Team2Image { get; set; }
-        public string NameSeo { get; set; }
-        public string MatchDate { get; set; }
-        public string MatchTime { get; set; }
-        public string Embed { get; set; }
-        public string FrameLink { get; set; }
+        public int FixtureId { get; set; }
+        public int IdPlayer { get; set; }
+        public string HomeTeam { get; set; } = string.Empty;
+        public string VisitorTeam { get; set; } = string.Empty;
+        public string Sportname { get; set; } = string.Empty;
     }
 
-    public class StreamModel
+    public class ResponseStreamAccess
     {
-        public List<MatchList> MatchList { get; set; }
+        public bool Access { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public string Url { get; set; } = string.Empty;
     }
+
+    
 
     public class BroadcastNotification
     {
@@ -40,5 +31,20 @@ namespace WolfApiCore.Models
         public int ts { get; set; }
         public string broadcast { get; set; }
         public int type { get; set; }
+    }
+
+    public class StreamLinksDTO
+    {
+        public int event_id { get; set; }
+        public string sport_name { get; set; } = string.Empty;
+        public string league_name { get; set; } = string.Empty;
+        public string team1 { get; set; } = string.Empty;
+        public string team2 { get; set; } = string.Empty;
+        public DateTime event_date { get; set; }
+        public int time_stamp { get; set; }
+        public string broadcast { get; set; } = string.Empty;
+        public int fixtureId { get; set; }
+        public int type { get; set; }
+        public bool active { get; set; }
     }
 }

@@ -1,39 +1,25 @@
-﻿using Newtonsoft.Json;
+﻿using Azure.Core;
+using Azure;
+using Newtonsoft.Json;
 using System.Net;
 using WolfApiCore.DbTier;
 using WolfApiCore.Models;
 
 namespace WolfApiCore.Stream
 {
-    public class StreamService
+    public static class StreamService
     {
-        public StreamModel GetStream()
+        public static ResponseStreamAccess GetStreamAccess(RequestStreamAccess request)
         {
-            try
+            var response = StreamDbClass.GetStreamAccessRules(request.IdPlayer);
+
+            if (response.Access == true)
             {
-                var serviceUrl = $"https://www.livemedia.services/newsource/api.php?token=VGIBTKGHFJDBSNVMCBNVBKEITOGKOSDLFKJKBVCPPF045";
-                WebClient wc = new WebClient();
-                string result = wc.DownloadString(serviceUrl);
-                return JsonConvert.DeserializeObject<StreamModel>(result);
+                //response.Url = RusianStreamService.getRussianStream(request);
+                response.Url = EzStreamService.getEzStream(request);
+                
             }
-            catch (Exception ex)
-            {
-                return null;
-            }
-        }
-
-        public void PushNotification(BroadcastNotification notification) 
-        {
-            switch (notification.type) {
-                case 1:
-                case 2: StreamDbClass.PushNotification(notification); //insert, update
-                    break;
-
-                case 3: StreamDbClass.DeleteNotification(notification);//delete
-                    break;
-
-                default: throw new Exception("Unknown notification type");
-            }            
+            return response;
         }
     }
 }

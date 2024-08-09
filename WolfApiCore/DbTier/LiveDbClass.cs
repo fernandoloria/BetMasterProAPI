@@ -1458,7 +1458,7 @@ namespace WolfApiCore.DbTier
         public int ParticipantId { get; set; }
         public string Name { get; set; }
         public int Position { get; set; }
-        public string Rot { get; set; }      
+        public int Rot { get; set; }      
 
     }
 

@@ -15,7 +15,7 @@ namespace WolfApiCore.Controllers
         public IActionResult PushNotification(BroadcastNotification notification)
         {
             try {
-                new StreamService().PushNotification(notification);
+                RusianStreamService.PushNotification(notification);
                 return Ok("Notification Push Succesfull");
             }
             catch (Exception ex) {
@@ -26,13 +26,19 @@ namespace WolfApiCore.Controllers
         [HttpGet("GetSignature")]
         public string GetSignature()
         {
-            return new SignatureGenerator().GenerateSignature();
+            return RusianStreamService.GenerateSignature();
+        }
+
+        [HttpGet("GetPBStream")]
+        public PropBStreamModel GetPBStream()
+        {
+            return PropBuilderStreamService.GetStreamList();
         }
 
         [HttpPost("GetStreamAccess")]
-        public GetStreamAccessDTO GetStreamAccess(RequestStreamAccess request)
+        public ResponseStreamAccess GetStreamAccess(RequestStreamAccess request)
         {
-            return StreamDbClass.GetStreamAccess(request);
+            return StreamService.GetStreamAccess(request);
         }
 
     }

@@ -20,12 +20,6 @@ namespace WolfApiCore.Controllers
             _base64Service = base64Service;
         }
 
-        [HttpGet("GetStream")]
-        public StreamModel GetStream()
-        {
-            return new StreamService().GetStream();
-        }
-
         [HttpPost("GetLastBetHours")]
         public RespPlayerLastBet GetLastBetHours(ReqPlayerLastBet idplayer)
         {
