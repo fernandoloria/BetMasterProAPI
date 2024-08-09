@@ -27,7 +27,7 @@ namespace WolfApiCore.Stream
 
             if (sport.Key != null && sport.Value.Events.Count > 0)
             {
-                var participants = new LiveDbClass(moverConnString).GetParticipants(request.FixtureId);
+                var participants = new LiveDbClass().GetParticipants(request.FixtureId);
 
                 foreach (var sportEvent in sport.Value.Events)
                 {

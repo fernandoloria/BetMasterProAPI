@@ -13,9 +13,17 @@ namespace WolfApiCore.DbTier
     {
         private readonly string connString;
 
+        private static readonly string moverConnString = "Data Source=192.168.11.29;Initial Catalog=mover;Persist Security Info=True;User ID=live;Password=d_Ez*gIb8v7NogU;TrustServerCertificate=True";
+
+
         public LiveDbClass(string ConnString)
         {
             connString = ConnString;
+        }
+
+        public LiveDbClass()
+        {
+            connString = moverConnString;
         }
 
         //private List<LSportGameDto> GetAllEventsByHour(int hours)

@@ -8,8 +8,6 @@ using WolfApiCore.Utilities;
 var builder = WebApplication.CreateBuilder(args);
 
 
-StreamDbClass.getEzStreamList();
-
 /* TEST Get Games And Lines
 string moverConnString = "Data Source=192.168.11.29;Initial Catalog=mover;Persist Security Info=True;User ID=live;Password=d_Ez*gIb8v7NogU;TrustServerCertificate=True";
 var resultData = new LiveDbClass(moverConnString).GetGamesAndLines(300563);
