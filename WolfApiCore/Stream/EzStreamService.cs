@@ -29,20 +29,19 @@ namespace WolfApiCore.Stream
             {
                 var participants = new LiveDbClass().GetParticipants(request.FixtureId);
 
-                
                 foreach (var sportEvent in sport.Value.Events)
                 {
                     var encontro = false;
                     var game = sportEvent.Value;
-                   
+                    var homeTeam = game.competitiors.Home;
+                    var visitorTeam = game.competitiors.Away;
+
                     // Buscar por RotNumber
                     if (participants.Any(p => p.Rot != 0 && p.Rot == int.Parse(game.Donbest_Id)))
                         encontro = true;
                     // Busqueda por Nombre
                     else
                     {
-                        var homeTeam = game.competitiors.Home;
-                        var visitorTeam = game.competitiors.Away;
                         encontro =
                             // que el home sea similar
                             (IsSimilarTeamName(request.HomeTeam, homeTeam) ||
@@ -55,12 +54,22 @@ namespace WolfApiCore.Stream
 
                     if (encontro)
                     {
+                        // guarda el URL q encontro
                         URL = EzStreamEventURL + game.Stream_Id;
-                        break;
+
+                        if (isAlternative(homeTeam, visitorTeam))
+                            continue; // si era un alternative, continuar a ver si encuentra el principal
+                        else
+                            break; // si es el principal retornar
                     }
                 }
             }
             return URL;
+        }
+
+        private static bool isAlternative(string homeTeam, string visitorTeam) 
+        {
+            return ((homeTeam + visitorTeam).ToLower().Contains("(alt)"));
         }
 
         private static EzStreamModel getEzStreamList()
