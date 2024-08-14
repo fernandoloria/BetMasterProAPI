@@ -1452,6 +1452,8 @@ namespace WolfApiCore.DbTier
         public string PickTeam { get; set; }
         public int MarketId { get; set; }
         public int Result { get; set; }
+        public int DetailResult { get; set; }
+        public int HeaderResult { get; set; }
 
     }
 
