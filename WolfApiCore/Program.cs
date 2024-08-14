@@ -1,11 +1,25 @@
+using Azure.Core;
 using Microsoft.Extensions.Configuration;
 using WolfApiCore.DbTier;
 using WolfApiCore.Hubs;
 using WolfApiCore.Models;
 using WolfApiCore.Utilities;
+using WolfApiCore.Stream;
 
 
 var builder = WebApplication.CreateBuilder(args);
+
+/* TEST EzStream 
+RequestStreamAccess request = new RequestStreamAccess
+{
+    IdPlayer = 300563,
+    FixtureId = 13407623,
+    Sportname = "Baseball",
+    HomeTeam = "Minnesota Twins",
+    VisitorTeam = "Kansas City Royals"
+};
+var URL = EzStreamService.getEzStream(request);
+*/
 
 
 /* TEST Get Games And Lines
