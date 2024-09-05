@@ -58,7 +58,8 @@ namespace WolfApiCore.DbTier
         //    return resultList;
         //}//end GetAllScores
 
-        private List<LSportGameDto> GetAllActiveEvents()
+        [Obsolete("Duraba mucho iba N veces a la BD, se debe user GetAllActiveEventsMarketsLines")]
+        private List<LSportGameDto> GetAllActiveEvents() 
         {
             List<LSportGameDto> games = new List<LSportGameDto>();
             string sql = "exec [sp_MGL_GetActiveEvents]";
@@ -74,7 +75,10 @@ namespace WolfApiCore.DbTier
                 foreach (var game in games)
                 {
                     //get markets/lines
-                    game.PropMarkets = ConvertToScreenProps(GetEventsMarketsLines(game.FixtureId, game.SportId), game.FixtureId);
+                    game.PropMarkets = ConvertToScreenProps(
+                                            GetEventsMarketsLines(game.FixtureId, game.SportId), 
+                                            game.FixtureId
+                                       );
 
                 }
             }
@@ -85,7 +89,113 @@ namespace WolfApiCore.DbTier
             }
 
             return games;
-        }//end GetAllScores
+        }
+
+        private List<LSportGameDto> GetAllActiveEventsMarketsLines()
+        {
+            List<LSportGameDto> games = new List<LSportGameDto>();
+            string sql = "exec [sp_MGL_GetActiveEventsMarketsLines]";
+
+            try
+            {
+                MarketReplace.LoadMarketsList(this);
+
+                using var connection = new SqlConnection(connString);
+                var gamesWithMarkets = connection.Query<LSportGameAndMarketsDto>(sql).ToList();
+
+                var fixtures = gamesWithMarkets.GroupBy(g => g.FixtureId);
+
+                foreach (var fixtureGroup in fixtures)
+                {
+                    var fixture = fixtureGroup.First();
+
+                    var game = new LSportGameDto
+                    {
+                        FixtureId = fixture.FixtureId,
+                        StatusId = fixture.StatusId,
+                        Status_Description = fixture.Status_Description,
+                        Status_DescriptionCss = fixture.Status_DescriptionCss,
+                        CurrentPeriod = fixture.CurrentPeriod,
+                        PremiumGame = fixture.PremiumGame,
+                        BetCount = fixture.BetCount,
+                        GameTime = fixture.GameTime,
+                        PeriodDesc = fixture.PeriodDesc,
+                        GameStatus = fixture.GameStatus,
+                        VisitorScore = fixture.VisitorScore,
+                        HomeScore = fixture.HomeScore,
+                        ScoreCreatedDateTime = fixture.ScoreCreatedDateTime,
+                        SportId = fixture.SportId,
+                        SportName = fixture.SportName,
+                        LeagueId = fixture.LeagueId,
+                        LeagueName = fixture.LeagueName,
+                        EventFixtureDateTime = fixture.EventFixtureDateTime,
+                        VisitorRotation = fixture.VisitorRotation,
+                        HomeRotation = fixture.HomeRotation,
+                        VisitorTeamId = fixture.VisitorTeamId,
+                        HomeTeamId = fixture.HomeTeamId,
+                        EventCreatedDateTime = fixture.EventCreatedDateTime,
+                        IdGame = fixture.IdGame,
+                        VisitorTeam = fixture.VisitorTeam,
+                        HomeTeam = fixture.HomeTeam,
+                        LocationId = fixture.LocationId,
+                        LocationName = fixture.LocationName,
+                        GameId = fixture.GameId,
+                        ShowLines = fixture.ShowLines,
+                        TotalLines = fixture.TotalLines,
+                        IsTournament = fixture.IsTournament,
+                        PropMarkets = new List<LSport_EventPropMarketDto>()
+                    };
+
+                    var markets = fixtureGroup.GroupBy(m => m.MarketId);
+                    foreach (var marketGroup in markets)
+                    {
+                        var market = marketGroup.First();
+
+                        var gameMarket = new LSport_EventPropMarketDto
+                        {
+                            MainLine = market.MainLine,
+                            MarketID = market.MarketId,
+                            MarketName = market.MarketName!,
+                            IsTnt = market.IsTnt,
+                            IsPlayerProp = market.IsPlayerProp,
+                            IsGameProp = market.IsGameProp,
+                            IsMain = market.IsMain,
+                            AllowMarketParlay = market.AllowMarketParlay,
+                            Explanation = market.Explanation,
+                            Props = new List<LSport_EventPropDto>()
+                        };
+
+                        foreach (var linea in marketGroup)
+                        {
+                            gameMarket.Props.Add(new LSport_EventPropDto
+                            {
+                                MarketId = linea.MarketId,
+                                IdL1 = linea.Id.ToString(),
+                                FixtureId = linea.FixtureId,
+                                Line1 = linea.Line,
+                                MarketName = linea.MarketName,
+                                Odds1 = int.Parse(linea.PriceUS!),
+                                Name = new MarketReplace(linea.MarketId, linea.Name!, game.HomeTeam!, game.VisitorTeam!).MarketReplace1X2(),                                
+                                IsSelected = false,
+                                BaseLine = FixBaseLineStr(linea.BaseLine!),
+                                OriginalName = linea.Name,
+                                Price = Convert.ToDecimal(linea.Price)
+                            });                           
+                        }
+                        game.PropMarkets.Add(gameMarket);
+                    }
+
+                    games.Add(game);
+                }
+            }
+            catch (Exception ex)
+            {
+                //here todo log
+                string value = ex.Message;
+            }
+
+            return games;
+        }
 
         public List<LSportGameDto> GetSignalEvents()
         {
@@ -205,10 +315,9 @@ namespace WolfApiCore.DbTier
                                 Line1 = linea.Line,
                                 MarketName = linea.MarketName,
                                 Odds1 = int.Parse(linea.PriceUS!),
-                                Name = new MarketReplace(linea.MarketId, linea.Name!, game.HomeTeam!, game.VisitorTeam!).MarketReplace1X2(),
-                                        //linea.Name!.ToUpper(),
+                                Name = new MarketReplace(linea.MarketId, linea.Name!, game.HomeTeam!, game.VisitorTeam!).MarketReplace1X2(),                                        
                                 IsSelected = false,
-                                BaseLine = FixBaseLineStr(linea.BaseLine),
+                                BaseLine = FixBaseLineStr(linea.BaseLine!),
                                 OriginalName = linea.Name,
                                 Price = Convert.ToDecimal(linea.Price)
                             });
@@ -335,50 +444,43 @@ namespace WolfApiCore.DbTier
             return resultGame;
         }//end GetAllScores
 
+        [Obsolete("Se debe user GetGamesAndLinesV2")]
         public List<LSport_ScreenSportsDto> GetGamesAndLines(int idPlayer)
         {
-            List<LSport_ScreenSportsDto> EventSportLines = new List<LSport_ScreenSportsDto>();
+            var result = new List<LSport_ScreenSportsDto>();
+
             try
             {
                 //var GameList = GetAllEventsByOur(hours); //obtemenos todos los fixtures de las ultimas 3 horas
-                LiveAdminDbClass oLiveAdmin = new LiveAdminDbClass();
-                LiveDbWager oLiveDbWager = new LiveDbWager();
+                LiveAdminDbClass liveAdmin = new LiveAdminDbClass();
+                LiveDbWager liveDbWager = new LiveDbWager();
 
-                var gameList = GetAllActiveEvents();
+                var games = GetAllActiveEvents();
 
                 if (idPlayer > 0)
                 {
-                    var oPlayerHierarchy = oLiveDbWager.GetPlayerHierarchy(idPlayer);
-                    List<GetSportsAndLeaguesHiddenReq> request = new List<GetSportsAndLeaguesHiddenReq>();
-                    request.Add(new GetSportsAndLeaguesHiddenReq()
+                    var playerHierarchy = liveDbWager.GetPlayerHierarchy(idPlayer);                    
+
+                    var blockedSportOrLeague = liveAdmin.GetSportsAndLeaguesHidden(new GetSportsAndLeaguesHiddenReq()
                     {
-                        AgentId = oPlayerHierarchy.SubAgentId,
-                        PlayerId = oPlayerHierarchy.PlayerId
-                    });
+                        AgentId = playerHierarchy.SubAgentId,
+                        PlayerId = playerHierarchy.PlayerId
+                    }).ToList();
 
-                    var blockedSportLeagues = oLiveAdmin.GetSportsAndLeaguesHidden(request).ToList();
-
-                    foreach (var b in blockedSportLeagues)
+                    foreach (var blocked in blockedSportOrLeague)
                     {
-                        var sportId = b.SportId;
-                        var leagueId = b.LeagueId;
-
-                        if (sportId != null && leagueId == null)
-                        {
-                            // remover deporte
-                            gameList = gameList.Where(g => g.SportId != sportId).ToList();
-                        }
-                        else
-                            // remover la liga
-                            gameList = gameList.Where(g => g.LeagueId != leagueId).ToList();
+                        if (blocked.LeagueId == null) // remover el deporte completo
+                            games = games.Where(g => g.SportId != blocked.SportId).ToList();
+                        else // remover solo la la liga
+                            games = games.Where(g => g.LeagueId != blocked.LeagueId).ToList();
                     }
 
-
-                    foreach (var game in gameList)
+                    foreach (var game in games)
                     {
-                        var oGameDGS = GetInfoPrematchDGS(game.FixtureId);
-                        if (oGameDGS != null) {
-                            var count = GetTotalWagersByGame(oGameDGS.IdGame);
+                        // Revisar la cantidad de apusetas en DGS para saber si es premium                        
+                        var gameDGS = GetInfoPrematchDGS(game.FixtureId);
+                        if (gameDGS != null) {
+                            var count = GetTotalWagersByGame(gameDGS.IdGame);
                             if (count != null)
                             {
                                 game.BetCount = count.WagersCount;
@@ -389,11 +491,12 @@ namespace WolfApiCore.DbTier
                                 game.BetCount = 0;
                                 game.PremiumGame = false;
                             }
-                        }
+                        }                        
 
-
+                        // Si el juego tiene lineas
                         if (game.TotalLines > 0)
                         {
+                            // poner los nombres de los participantes
                             var teams = GetParticipants(game.FixtureId);
                             if (teams != null)
                             {
@@ -414,53 +517,35 @@ namespace WolfApiCore.DbTier
                                 }
                             }
 
-                            //check if this sports already exists in EventSportLines
-                            if (EventSportLines.Where(x => x != null && x.SportId == game.SportId).Any())
+                            // Agregar el juego al resultado
+                            var sport = result.Where(s => s.SportId == game.SportId).FirstOrDefault();
+                            if (sport == null) // si aun no esta, crearlo
                             {
-                                //yes, sport exists
-                                if (EventSportLines.Where(x => x != null && x.SportId == game.SportId).FirstOrDefault()
-                                    .Leagues.Where(f => f.LeagueId == game.LeagueId).Any())
-                                {
-                                    EventSportLines.Where(x => x != null && x.SportId == game.SportId).FirstOrDefault()
-                                        .Leagues.Where(f => f.LeagueId == game.LeagueId).FirstOrDefault().Games.Add(game);
-                                }
-                                else
-                                {
-                                    LSport_ScreenLeagueDto lg = new LSport_ScreenLeagueDto()
-                                    {
-                                        ShowLeague = false,
-                                        LeagueName = $"{(HasLocationNameException(game.LocationName) ? game.LeagueName : $"{game.LocationName} - {game.LeagueName}")}",   ///game.LeagueName + " - " + game.LocationName,
-                                        LeagueId = game.LeagueId,
-                                        IsTournament = game.IsTournament,
-                                        Games = new List<LSportGameDto>()
-                                    };
-
-                                    lg.Games.Add(game);
-                                    EventSportLines.Where(x => x != null && x.SportId == game.SportId).FirstOrDefault()
-                                        .Leagues.Add(lg);
-                                }
-                            }
-                            else
-                            {
-                                LSport_ScreenLeagueDto league = new LSport_ScreenLeagueDto()
-                                {
-                                    ShowLeague = false,
-                                    LeagueName = $"{(HasLocationNameException(game.LocationName) ? game.LeagueName : $"{game.LocationName} - {game.LeagueName}")}", //game.LeagueName + " - " + game.LocationName,
-                                    LeagueId = game.LeagueId,
-                                    IsTournament = game.IsTournament,
-                                    Games = new List<LSportGameDto>()
-                                };
-                                league.Games.Add(game);
-                                LSport_ScreenSportsDto sport = new LSport_ScreenSportsDto()
+                                sport = new LSport_ScreenSportsDto()
                                 {
                                     ShowSport = false,
                                     SportName = game.SportName,
                                     SportId = game.SportId,
                                     Leagues = new List<LSport_ScreenLeagueDto>()
                                 };
-                                sport.Leagues.Add(league);
-                                EventSportLines.Add(sport);
+                                result.Add(sport);
                             }
+
+                            var league = sport.Leagues!.Where(l => l.LeagueId == game.LeagueId).FirstOrDefault();
+                            if (league == null)
+                            {
+                                league = new LSport_ScreenLeagueDto()
+                                {
+                                    ShowLeague = false,
+                                    LeagueName = $"{(HasLocationNameException(game.LocationName) ? game.LeagueName : $"{game.LocationName} - {game.LeagueName}")}",   
+                                    LeagueId = game.LeagueId,
+                                    IsTournament = game.IsTournament,
+                                    Games = new List<LSportGameDto>()
+                                };
+                                sport.Leagues!.Add(league);
+                            }
+
+                            league.Games!.Add(game);                                                       
                         }
                     }
                 }
@@ -469,7 +554,196 @@ namespace WolfApiCore.DbTier
             {
 
             }
-            return EventSportLines;
+            return result;
+        }
+
+        public List<LSport_ScreenSportsDto> GetGamesAndLinesV2(int idPlayer)
+        {
+            var result = new List<LSport_ScreenSportsDto>();
+
+            try
+            {
+                //var GameList = GetAllEventsByOur(hours); //obtemenos todos los fixtures de las ultimas 3 horas
+                LiveAdminDbClass liveAdmin = new LiveAdminDbClass();
+                LiveDbWager liveDbWager = new LiveDbWager();
+
+                var games = GetAllActiveEventsMarketsLines();
+
+                if (idPlayer > 0)
+                {
+                    var playerHierarchy = liveDbWager.GetPlayerHierarchy(idPlayer);
+
+                    var blockedSportOrLeague = liveAdmin.GetSportsAndLeaguesHidden(new GetSportsAndLeaguesHiddenReq()
+                    {
+                        AgentId = playerHierarchy.SubAgentId,
+                        PlayerId = playerHierarchy.PlayerId
+                    }).ToList();
+
+                    foreach (var blocked in blockedSportOrLeague)
+                    {
+                        if (blocked.LeagueId == null) // remover el deporte completo
+                            games = games.Where(g => g.SportId != blocked.SportId).ToList();
+                        else // remover solo la la liga
+                            games = games.Where(g => g.LeagueId != blocked.LeagueId).ToList();
+                    }
+
+                    foreach (var game in games)
+                    {
+                        // Si el juego tiene lineas
+                        if (game.TotalLines > 0)
+                        {                          
+                            // Agregar el juego al resultado
+                            var sport = result.Where(s => s.SportId == game.SportId).FirstOrDefault();
+                            if (sport == null) // si aun no esta, crearlo
+                            {
+                                sport = new LSport_ScreenSportsDto()
+                                {
+                                    ShowSport = false,
+                                    SportName = game.SportName,
+                                    SportId = game.SportId,
+                                    Leagues = new List<LSport_ScreenLeagueDto>()
+                                };
+                                result.Add(sport);
+                            }
+
+                            var league = sport.Leagues!.Where(l => l.LeagueId == game.LeagueId).FirstOrDefault();
+                            if (league == null)
+                            {
+                                league = new LSport_ScreenLeagueDto()
+                                {
+                                    ShowLeague = false,
+                                    LeagueName = $"{(HasLocationNameException(game.LocationName) ? game.LeagueName : $"{game.LocationName} - {game.LeagueName}")}",
+                                    LeagueId = game.LeagueId,
+                                    IsTournament = game.IsTournament,
+                                    Games = new List<LSportGameDto>()
+                                };
+                                sport.Leagues!.Add(league);
+                            }
+
+                            league.Games!.Add(game);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+
+            }
+            return result;
+        }
+
+        public List<LSport_ScreenSportsDto> GetNewGamesAndLines(int idPlayer)
+        {
+            var result = new List<LSport_ScreenSportsDto>();
+
+            try
+            {
+                //var GameList = GetAllEventsByOur(hours); //obtemenos todos los fixtures de las ultimas 3 horas
+                LiveAdminDbClass liveAdmin = new LiveAdminDbClass();
+                LiveDbWager liveDbWager = new LiveDbWager();
+
+                var games = GetAllActiveEvents();
+
+                if (idPlayer > 0)
+                {
+                    var playerHierarchy = liveDbWager.GetPlayerHierarchy(idPlayer);
+
+                    var blockedSportOrLeague = liveAdmin.GetSportsAndLeaguesHidden(new GetSportsAndLeaguesHiddenReq()
+                    {
+                        AgentId = playerHierarchy.SubAgentId,
+                        PlayerId = playerHierarchy.PlayerId
+                    }).ToList();
+
+                    foreach (var blocked in blockedSportOrLeague)
+                    {
+                        if (blocked.LeagueId == null) // remover el deporte completo
+                            games = games.Where(g => g.SportId != blocked.SportId).ToList();
+                        else // remover solo la la liga
+                            games = games.Where(g => g.LeagueId != blocked.LeagueId).ToList();
+                    }
+
+                    foreach (var game in games)
+                    {
+                        // Revisar la cantidad de apusetas en DGS para saber si es premium
+                        /*
+                        var gameDGS = GetInfoPrematchDGS(game.FixtureId);
+                        if (gameDGS != null) {
+                            var count = GetTotalWagersByGame(gameDGS.IdGame);
+                            if (count != null)
+                            {
+                                game.BetCount = count.WagersCount;
+                                game.PremiumGame = count.WagersCount >= 500 ? true : false;
+                            }
+                            else
+                            {
+                                game.BetCount = 0;
+                                game.PremiumGame = false;
+                            }
+                        }
+                        */
+
+                        // Si el juego tiene lineas
+                        if (game.TotalLines > 0)
+                        {
+                            // poner los nombres de los participantes
+                            var teams = GetParticipants(game.FixtureId);
+                            if (teams != null)
+                            {
+                                var homeTeam = teams.Where(x => x.Position == 1).FirstOrDefault();
+                                if (homeTeam != null)
+                                {
+                                    game.HomeTeam = homeTeam?.Name;
+                                    game.HomeTeamId = Convert.ToInt32(homeTeam?.ParticipantId);
+                                    game.HomeRotation = Convert.ToInt32(homeTeam?.Rot);
+                                }
+
+                                var visitorTeam = teams.Where(x => x.Position == 2).FirstOrDefault();
+                                if (visitorTeam != null)
+                                {
+                                    game.VisitorTeam = visitorTeam?.Name;
+                                    game.VisitorTeamId = Convert.ToInt32(visitorTeam?.ParticipantId);
+                                    game.VisitorRotation = Convert.ToInt32(visitorTeam?.Rot);
+                                }
+                            }
+
+                            // Agregar el juego al resultado
+                            var sport = result.Where(s => s.SportId == game.SportId).FirstOrDefault();
+                            if (sport == null) // si aun no esta, crearlo
+                            {
+                                sport = new LSport_ScreenSportsDto()
+                                {
+                                    ShowSport = false,
+                                    SportName = game.SportName,
+                                    SportId = game.SportId,
+                                    Leagues = new List<LSport_ScreenLeagueDto>()
+                                };
+                                result.Add(sport);
+                            }
+
+                            var league = sport.Leagues!.Where(l => l.LeagueId == game.LeagueId).FirstOrDefault();
+                            if (league == null)
+                            {
+                                league = new LSport_ScreenLeagueDto()
+                                {
+                                    ShowLeague = false,
+                                    LeagueName = $"{(HasLocationNameException(game.LocationName) ? game.LeagueName : $"{game.LocationName} - {game.LeagueName}")}",
+                                    LeagueId = game.LeagueId,
+                                    IsTournament = game.IsTournament,
+                                    Games = new List<LSportGameDto>()
+                                };
+                                sport.Leagues!.Add(league);
+                            }
+
+                            league.Games!.Add(game);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+
+            }
+            return result;
         }
 
         public TotalWagersDTO GetTotalWagersByGame(int prmIdGame)
@@ -1069,6 +1343,8 @@ namespace WolfApiCore.DbTier
                     if(newMarket)
                         resp.Add(market);
                 }
+
+
                 /*
 
                 foreach (var prop in originalList)

@@ -312,10 +312,12 @@
         {
             public int AgentId { get; set; }
             public int? PlayerId { get; set; }
+            
             public int SportId { get; set; }
             public int? LeagueId { get; set; }
             public string? SportName { get; set; }
             public string? LeagueName { get; set; }
+            
         }
 
         public class GetAccessDeniedListReq

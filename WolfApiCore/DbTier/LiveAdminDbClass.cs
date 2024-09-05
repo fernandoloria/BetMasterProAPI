@@ -1363,6 +1363,23 @@ namespace WolfApiCore.DbTier
             return resp;
         }
 
+        public List<GetSportsAndLeaguesHiddenResp> GetSportsAndLeaguesHidden(GetSportsAndLeaguesHiddenReq oItem)
+        {
+            var oListResp = new List<GetSportsAndLeaguesHiddenResp>();
+            string sql = "exec sp_MGL_GetSportsAndLeaguesHidden @AgentId, @PlayerId";
+            try
+            {   
+                var values = new { oItem.AgentId, oItem.PlayerId/*, oItem.SportId, oItem.LeagueId */};
+                using var connection = new SqlConnection(moverConnString);
+                oListResp = connection.Query<GetSportsAndLeaguesHiddenResp>(sql, values).ToList();
+            }
+            catch (Exception ex)
+            {
+                
+            }
+            return oListResp;
+        }
+
         public List<GetSportsAndLeaguesHiddenResp> GetSportsAndLeaguesHidden(List<GetSportsAndLeaguesHiddenReq> req)
         {
             List<GetSportsAndLeaguesHiddenResp> oListResp = new List<GetSportsAndLeaguesHiddenResp>();
@@ -1373,7 +1390,7 @@ namespace WolfApiCore.DbTier
                 {
                     foreach (var oItem in req)
                     {
-                        var values = new { oItem.AgentId, oItem.PlayerId, oItem.SportId, oItem.LeagueId };
+                        var values = new { oItem.AgentId, oItem.PlayerId/*, oItem.SportId, oItem.LeagueId */};
                         using var connection = new SqlConnection(moverConnString);
                         oListResp = connection.Query<GetSportsAndLeaguesHiddenResp>(sql, values).ToList();
                     }
@@ -1382,7 +1399,7 @@ namespace WolfApiCore.DbTier
             }
             catch (Exception ex)
             {
-                throw ex;
+                
             }
             return oListResp;
         }

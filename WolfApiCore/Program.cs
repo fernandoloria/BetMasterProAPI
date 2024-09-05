@@ -23,10 +23,17 @@ var URL = EzStreamService.getEzStream(request);
 
 
 
-/* TEST Get Games And Lines
+// TEST Get Games And Lines
+/*
 string moverConnString = "Data Source=192.168.11.29;Initial Catalog=mover;Persist Security Info=True;User ID=live;Password=d_Ez*gIb8v7NogU;TrustServerCertificate=True";
-var resultData = new LiveDbClass(moverConnString).GetGamesAndLines(300563);
-/*/
+var liveDbClass = new LiveDbClass(moverConnString);
+var resultData1 = liveDbClass.GetGamesAndLines(300563);
+var resultData2 = liveDbClass.GetGamesAndLinesV2(300563);
+
+if (resultData1.Count == resultData2.Count)
+    throw new Exception("Fin del Test");
+*/
+
 
 // TEST DE RENDIMIENTO SingalEvents
 /*

@@ -34,6 +34,14 @@ namespace WolfApiCore.Controllers
             return resultData;
         }
 
+        [HttpGet("GetGamesAndLinesV2/{idplayer}")]
+        public List<LSport_ScreenSportsDto> GetGamesAndLinesV2(int idPlayer)
+        {
+            var connString = _configuration.GetValue<string>("SrvSettings:DbConnMover");
+            var resultData = new LiveDbClass(connString).GetGamesAndLinesV2(idPlayer);
+            return resultData;
+        }
+
         [HttpPost("CreateWager")]
         public LSport_BetSlipObj CreateWager(LSport_BetSlipObj Betslip)
         {
