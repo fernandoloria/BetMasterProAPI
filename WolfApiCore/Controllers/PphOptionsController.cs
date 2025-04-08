@@ -16,7 +16,7 @@ namespace WolfApiCore.Controllers
         }
 
 
-        [HttpPost("GetOptionsPph")]
+        [HttpPost("GetOptionsPph2")]
         public List<RespPphOptionsModel> Prueba(ReqPphOptionsModel req)
         {
             return new PphOptionsClass().getPphOptions(req);

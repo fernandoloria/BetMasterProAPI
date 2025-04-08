@@ -12,7 +12,7 @@ namespace WolfApiCore.DbTier
 {
     public static class StreamDbClass
     {
-        private static readonly string moverConnString = "Data Source=192.168.11.29;Initial Catalog=mover;Persist Security Info=True;User ID=live;Password=d_Ez*gIb8v7NogU;TrustServerCertificate=True";
+        private static readonly string moverConnString = "Data Source=192.168.83.195;Initial Catalog=mover;Persist Security Info=True;User ID=live;Password=h!D8k*4)]25[XM'r;TrustServerCertificate=True";
 
         public static void PushNotification(BroadcastNotification notification)
         {   

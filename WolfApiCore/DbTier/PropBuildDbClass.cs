@@ -231,7 +231,7 @@ namespace WolfApiCore.DbTier
             TotalWagersDTO? ProfileLimitsResp = new TotalWagersDTO();
             try
             {
-                string dgsConnString = "Data Source=192.168.11.29;Initial Catalog=DGSDATA;Persist Security Info=True;User ID=Payments;Password=p@yM3nts2701;TrustServerCertificate=True";
+                string dgsConnString = "Data Source=192.168.83.195;Initial Catalog=DGSDATA;Persist Security Info=True;User ID=Payments;Password=p@yM3nts2701;TrustServerCertificate=True";
                 string sql = "exec Game_GetWagersCount @prmIdGame";
                 var values = new { prmIdGame };
                 using var connection = new SqlConnection(dgsConnString);
@@ -249,7 +249,7 @@ namespace WolfApiCore.DbTier
             GameDGS oGame = new GameDGS();
             try
             {
-                string dgsConnString = "Data Source=192.168.11.29;Initial Catalog=DGSDATA;Persist Security Info=True;User ID=Payments;Password=p@yM3nts2701;TrustServerCertificate=True";
+                string dgsConnString = "Data Source=192.168.83.195;Initial Catalog=DGSDATA;Persist Security Info=True;User ID=Payments;Password=p@yM3nts2701;TrustServerCertificate=True";
                 string sql = "exec GetPrematchIdGameByFixtureId @FixtureId";
                 var values = new { FixtureId };
                 using var connection = new SqlConnection(dgsConnString);

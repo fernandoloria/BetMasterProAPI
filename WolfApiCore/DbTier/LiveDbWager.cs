@@ -10,8 +10,8 @@ namespace WolfApiCore.DbTier
 {
     public class LiveDbWager
     {
-        private readonly string DgsConnString = "Data Source=192.168.11.29;Initial Catalog=DGSDATA;Persist Security Info=True;User ID=Payments;Password=p@yM3nts2701;TrustServerCertificate=True";
-        private readonly string MoverConnString = "Data Source=192.168.11.29;Initial Catalog=mover;Persist Security Info=True;User ID=live;Password=d_Ez*gIb8v7NogU;TrustServerCertificate=True";
+        private readonly string DgsConnString = "Data Source=192.168.83.195;Initial Catalog=DGSDATA;Persist Security Info=True;User ID=Payments;Password=p@yM3nts2701;TrustServerCertificate=True";
+        private readonly string MoverConnString = "Data Source=192.168.83.195;Initial Catalog=mover;Persist Security Info=True;User ID=live;Password=h!D8k*4)]25[XM'r;TrustServerCertificate=True";
 
         //private readonly AppConfig _appConfig = new AppConfig();
 

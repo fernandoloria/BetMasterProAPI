@@ -11,8 +11,8 @@ namespace WolfApiCore.DbTier
 {
     public class LiveAdminDbClass
     {
-        private readonly string dgsConnString = "Data Source=192.168.11.29;Initial Catalog=DGSDATA;Persist Security Info=True;User ID=Payments;Password=p@yM3nts2701;TrustServerCertificate=True";
-        private readonly string moverConnString = "Data Source=192.168.11.29;Initial Catalog=mover;Persist Security Info=True;User ID=live;Password=d_Ez*gIb8v7NogU;TrustServerCertificate=True";
+        private readonly string dgsConnString = "Data Source=192.168.83.195;Initial Catalog=DGSDATA;Persist Security Info=True;User ID=Payments;Password=p@yM3nts2701;TrustServerCertificate=True";
+        private readonly string moverConnString = "Data Source=192.168.83.195;Initial Catalog=mover;Persist Security Info=True;User ID=live;Password=h!D8k*4)]25[XM'r;TrustServerCertificate=True";
 
         public AgentLoginResp AdminLogin(AgentLoginReq LoginReq)
         {

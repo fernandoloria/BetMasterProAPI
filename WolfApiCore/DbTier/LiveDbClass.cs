@@ -13,7 +13,7 @@ namespace WolfApiCore.DbTier
     {
         private readonly string connString;
 
-        private static readonly string moverConnString = "Data Source=192.168.11.29;Initial Catalog=mover;Persist Security Info=True;User ID=live;Password=d_Ez*gIb8v7NogU;TrustServerCertificate=True";
+        private static readonly string moverConnString = "Data Source=192.168.83.195;Initial Catalog=mover;Persist Security Info=True;User ID=live;Password=h!D8k*4)]25[XM'r;TrustServerCertificate=True";
 
 
         public LiveDbClass(string ConnString)
@@ -751,7 +751,7 @@ namespace WolfApiCore.DbTier
             TotalWagersDTO? ProfileLimitsResp = new TotalWagersDTO();
             try
             {
-                string dgsConnString = "Data Source=192.168.11.29;Initial Catalog=DGSDATA;Persist Security Info=True;User ID=Payments;Password=p@yM3nts2701;TrustServerCertificate=True";
+                string dgsConnString = "Data Source=192.168.83.195;Initial Catalog=DGSDATA;Persist Security Info=True;User ID=Payments;Password=p@yM3nts2701;TrustServerCertificate=True";
                 string sql = "exec Game_GetWagersCount @prmIdGame";
                 var values = new { prmIdGame };
                 using var connection = new SqlConnection(dgsConnString);
@@ -768,7 +768,7 @@ namespace WolfApiCore.DbTier
             GameDGS oGame = new GameDGS();
             try
             {
-                string dgsConnString = "Data Source=192.168.11.29;Initial Catalog=DGSDATA;Persist Security Info=True;User ID=Payments;Password=p@yM3nts2701;TrustServerCertificate=True";
+                string dgsConnString = "Data Source=192.168.83.195;Initial Catalog=DGSDATA;Persist Security Info=True;User ID=Payments;Password=p@yM3nts2701;TrustServerCertificate=True";
                 string sql = "exec GetPrematchIdGameByFixtureId @FixtureId";
                 var values = new { FixtureId };
                 using var connection = new SqlConnection(dgsConnString);

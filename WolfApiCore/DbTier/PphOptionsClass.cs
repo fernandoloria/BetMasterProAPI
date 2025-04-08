@@ -7,7 +7,7 @@ namespace WolfApiCore.DbTier
     public class PphOptionsClass
     {
 
-        private readonly string moverConnString = "Data Source=192.168.11.36;Initial Catalog=mover;Persist Security Info=True;User ID=live;Password=d_Ez*gIb8v7NogU;TrustServerCertificate=True";
+        private readonly string moverConnString = "Data Source=192.168.11.36;Initial Catalog=mover;Persist Security Info=True;User ID=live;Password=h!D8k*4)]25[XM'r;TrustServerCertificate=True";
 
 
         public List<RespPphOptionsModel> getPphOptions(ReqPphOptionsModel req)
