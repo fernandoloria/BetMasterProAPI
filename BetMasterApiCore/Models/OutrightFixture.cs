@@ -1,0 +1,14 @@
+namespace BetMasterApiCore.Models
+{
+
+    public class OutrightFixture
+    {
+        public Sport Sport { get; set; }
+        public Location Location { get; set; }
+        public DateTime StartDate { get; set; }
+        public DateTime LastUpdate { get; set; }
+        public int Status { get; set; }
+        public List<Participant> Participants { get; set; }
+        public List<ExtraDatum> ExtraData { get; set; }
+    }
+}
