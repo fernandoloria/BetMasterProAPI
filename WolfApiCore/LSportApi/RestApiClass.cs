@@ -1,9 +1,9 @@
 ﻿using Newtonsoft.Json;
 using System.Net;
 using System.Text;
-using WolfApiCore.Models;
+using BetMasterApiCore.Models;
 
-namespace WolfApiCore.LSportApi
+namespace BetMasterApiCore.LSportApi
 {
     public class RestApiClass
     {

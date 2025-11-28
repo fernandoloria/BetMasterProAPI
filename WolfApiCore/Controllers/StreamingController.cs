@@ -1,11 +1,11 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
-using WolfApiCore.DbTier;
-using WolfApiCore.Models;
-using WolfApiCore.Stream;
+using BetMasterApiCore.DbTier;
+using BetMasterApiCore.Models;
+using BetMasterApiCore.Stream;
 
-namespace WolfApiCore.Controllers
+namespace BetMasterApiCore.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]

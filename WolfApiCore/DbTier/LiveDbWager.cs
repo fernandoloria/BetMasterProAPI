@@ -2,20 +2,40 @@
 using Microsoft.Data.SqlClient;
 using Microsoft.IdentityModel.Tokens;
 using System.Data;
-using WolfApiCore.LSportApi;
-using WolfApiCore.Models;
-using static WolfApiCore.Models.AdminModels;
+using BetMasterApiCore.LSportApi;
+using BetMasterApiCore.Models;
+using BetMasterApiCore.Utilities;
+using static BetMasterApiCore.Models.AdminModels;
 
-namespace WolfApiCore.DbTier
+namespace BetMasterApiCore.DbTier
 {
     public class LiveDbWager
     {
-        private readonly string DgsConnString = "Data Source=192.168.83.195;Initial Catalog=DGSDATA;Persist Security Info=True;User ID=Payments;Password=p@yM3nts2701;TrustServerCertificate=True";
-        private readonly string MoverConnString = "Data Source=192.168.83.195;Initial Catalog=mover;Persist Security Info=True;User ID=live;Password=h!D8k*4)]25[XM'r;TrustServerCertificate=True";
+        private readonly string DgsConnString;
+        private readonly string MoverConnString;
+        private readonly DbConnectionHelper _dbHelper;
 
-        //private readonly AppConfig _appConfig = new AppConfig();
+        public LiveDbWager(string dgsConn, string moverConn)
+        {
+            DgsConnString = dgsConn;
+            MoverConnString = moverConn;
+        }
 
-        //solo para spread
+        public LiveDbWager()
+        {
+            var builder = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+
+            IConfiguration config = builder.Build();
+
+            _dbHelper = new DbConnectionHelper(config);
+
+            // Obtiene las cadenas de appsettings.json
+            DgsConnString = config.GetValue<string>("SrvSettings:DbConnDGS");
+            MoverConnString = config.GetValue<string>("SrvSettings:DbConnMover");
+        }
+   
         private static readonly List<int> SpreadMarkets = new List<int>{
             3, 13, 53, 61, 64, 65, 66, 67, 68, 95, 201, 250, 281, 283, 307, 342, 386, 407, 408, 433, 447, 
             448, 449, 450, 467, 468, 526, 555, 757, 866, 935, 958, 1083, 1149, 1150, 1151, 1152, 1153, 1215, 
@@ -479,7 +499,7 @@ namespace WolfApiCore.DbTier
         private PlayerLimitsHierarchyParlay GetPlayerLimitsParlay(int PlayerId)
         {
             var oPlayerHierarchy = GetPlayerHierarchy(PlayerId);
-            LiveDbClass oLiveClass = new LiveDbClass(MoverConnString);
+            LiveDbClass oLiveClass = new LiveDbClass(MoverConnString, DgsConnString);
             LiveAdminDbClass oAdminClass = new LiveAdminDbClass();
             PlayerLimitsHierarchyParlay resp = new PlayerLimitsHierarchyParlay
             {
@@ -554,7 +574,7 @@ namespace WolfApiCore.DbTier
         private PlayerLimitsHierarchyStraight GetPlayerLimitsStraight(int PlayerId, int FixtureId)
         {
             var oPlayerHierarchy = GetPlayerHierarchy(PlayerId);
-            LiveDbClass oLiveClass = new LiveDbClass(MoverConnString);
+            LiveDbClass oLiveClass = new LiveDbClass(MoverConnString, DgsConnString);
             LiveAdminDbClass oAdminClass = new LiveAdminDbClass();
             PlayerLimitsHierarchyStraight resp = new PlayerLimitsHierarchyStraight
             {
@@ -630,8 +650,6 @@ namespace WolfApiCore.DbTier
             return resp;
         }
 
-
-
         private int GetTotalValuePerGame(int PlayerId, int FixtureId, int Marketid)
         {
             var limits = 0;
@@ -647,11 +665,10 @@ namespace WolfApiCore.DbTier
             return limits;
         }
 
-
         private AgentLimitsHierarchyStraight GetAgentLimitsStraight(int PlayerId, int FixtureId)
         {
             var oPlayerHierarchy = GetPlayerHierarchy(PlayerId);
-            LiveDbClass oLiveClass = new LiveDbClass(MoverConnString);
+            LiveDbClass oLiveClass = new LiveDbClass(MoverConnString, DgsConnString);
             LiveAdminDbClass oAdminClass = new LiveAdminDbClass();
             AgentLimitsHierarchyStraight resp = new AgentLimitsHierarchyStraight
             {
@@ -778,7 +795,7 @@ namespace WolfApiCore.DbTier
         private AgentLimitsHierarchyParlay GetAgentLimitsParlay(int PlayerId)
         {
             var oPlayerHierarchy = GetPlayerHierarchy(PlayerId);
-            LiveDbClass oLiveClass = new LiveDbClass(MoverConnString);
+            LiveDbClass oLiveClass = new LiveDbClass(MoverConnString, DgsConnString);
             LiveAdminDbClass oAdminClass = new LiveAdminDbClass();
             AgentLimitsHierarchyParlay resp = new AgentLimitsHierarchyParlay
             {
@@ -887,7 +904,7 @@ namespace WolfApiCore.DbTier
                 //RLM:2024.05.10, Fix, si alguno de los equipos viene vacio, buscar el nombre en bd
                 if (detailDescription.HomeTeam == "" || detailDescription.VisitorTeam == "")
                 {
-                    var participants = new LiveDbClass(MoverConnString).GetParticipants(detailDescription.FixtureId);
+                    var participants = new LiveDbClass(MoverConnString, DgsConnString).GetParticipants(detailDescription.FixtureId);
                     
                     if (detailDescription.HomeTeam == "")
                        detailDescription.HomeTeam = participants?.Where(p => p.Position == 1).FirstOrDefault()?.Name;
@@ -910,7 +927,6 @@ namespace WolfApiCore.DbTier
         {
             return $"{(!leagueNameExceptions.Contains(detailDescription!.SportName) ? detailDescription!.SportName : $"{detailDescription!.SportName} {detailDescription.LeagueName}")}";
         }
-
 
         public LSport_EventPropDto CreateStraightWager(CreateStraightWagerModel straightWager)
         {
@@ -1883,12 +1899,6 @@ namespace WolfApiCore.DbTier
                 foreach (var wager in wagers)
                 {
                     wager.Details = GetWagerDetails(wager.IdLiveWager);
-
-                    /* RLM:2024.04.09, ya esto no es necearia, se carga en el header directamente                      
-                        var playerdetails = GetPlayerInfoForLiveWagers(wager.IdPlayer);
-                        wager.Player = playerdetails.Player;
-                        wager.Agent = playerdetails.Agent;
-                    */
                 }
             }
             catch (Exception)
@@ -2098,9 +2108,9 @@ namespace WolfApiCore.DbTier
         }
 
         private string FormatWagerDetailCompleteDescription(WagerDetailCompleteDescriptionModel wagerDetailDescription, string fixtureName, string sportName) 
-        {   
-            string line = wagerDetailDescription.Line.IsNullOrEmpty() ? "" : $"{wagerDetailDescription.Line}" ;
-            string baseLine = wagerDetailDescription.BaseLine.IsNullOrEmpty() ? "" : $"{wagerDetailDescription.BaseLine}" ;                        
+        {
+            string line = string.IsNullOrEmpty(wagerDetailDescription.Line) ? "" : $"{wagerDetailDescription.Line}";
+            string baseLine = string.IsNullOrEmpty(wagerDetailDescription.BaseLine) ? "" : $"{wagerDetailDescription.BaseLine}";
 
             if (line.Replace("-", "").Equals(baseLine.Replace("-", "")) )            
                 baseLine = "";
@@ -2151,218 +2161,6 @@ namespace WolfApiCore.DbTier
             return response;
         }
 
-    }//end class
-
-    public class GradeDetailWager
-    {
-        public int IdLiveWagerDetail { get; set; }
-        public int IdLiveWager { get; set; }
-        public int Result { get; set; }
-        public int IdUser { get; set; }
     }
 
-    public class PlayerInfo
-    {
-        public string Player { get; set; }
-        public int IdPlayer { get; set; }
-        public string Agent { get; set; }
-        public int IdAgent { get; set; }
-    }
-
-    public class PlayerHierarchy
-    {
-        public int PlayerId { get; set; }
-        public int SubAgentId { get; set; }
-        public int MasterAgentId { get; set; }
-    }
-
-    public class PlayerLimitsHierarchyStraight
-    {
-        public int PlayerId { get; set; }
-        public int? SportId { get; set; }
-        public int? LeagueId { get; set; }
-        public bool IsSportLimit { get; set; }
-        public bool IsLeagueLimit { get; set; }
-        public decimal MinWager { get; set; }
-        public decimal MaxWager { get; set; }
-        public decimal MaxPayout { get; set; }
-        public decimal MinPrice { get; set; }
-        public decimal MaxPrice { get; set; }
-        public decimal TotAmtGame { get; set; }
-    }
-
-    public class AgentLimitsHierarchyParlay
-    {
-        public int AgentId { get; set; }
-        public int MasterAgentId { get; set; }
-        public int? SportId { get; set; }
-        public int? LeagueId { get; set; }
-        public bool IsSportLimit { get; set; }
-        public bool IsLeagueLimit { get; set; }
-        public decimal MinWager { get; set; }
-        public decimal MaxWager { get; set; }
-        public decimal MaxPayout { get; set; }
-        public decimal MinPrice { get; set; }
-        public decimal MaxPrice { get; set; }
-        public decimal TotAmtGame { get; set; }
-    }
-
-    public class AgentLimitsHierarchyStraight
-    {
-        public int AgentId { get; set; }
-        public int MasterAgentId { get; set; }
-        public int? SportId { get; set; }
-        public int? LeagueId { get; set; }
-        public bool IsSportLimit { get; set; }
-        public bool IsLeagueLimit { get; set; }
-        public decimal MinWager { get; set; }
-        public decimal MaxWager { get; set; }
-        public decimal MaxPayout { get; set; }
-        public decimal MinPrice { get; set; }
-        public decimal MaxPrice { get; set; }
-        public decimal TotAmtGame { get; set; }
-    }
-
-    public class PlayerLimitsHierarchyParlay
-    {
-        public int PlayerId { get; set; }
-        public int? SportId { get; set; }
-        public int? LeagueId { get; set; }
-        public bool IsSportLimit { get; set; }
-        public bool IsLeagueLimit { get; set; }
-        public decimal MinWager { get; set; }
-        public decimal MaxWager { get; set; }
-        public decimal MaxPayout { get; set; }
-        public decimal MinPrice { get; set; }
-        public decimal MaxPrice { get; set; }
-        public decimal TotAmtGame { get; set; }
-    }
-
-    public class PlayerTotalWagerDto
-    {
-        public decimal WinAmount { get; set; }
-        public decimal RiskAmount { get; set; }
-    }
-
-    public class PlayerLimitsDto
-    {
-        public int Id { get; set; }
-        public int PlayerId { get; set; }
-        public int IdWagerType { get; set; }
-        public int SportId { get; set; }
-        public int LeagueId { get; set; }
-        public int FixtureId { get; set; }
-        public decimal MaxWager { get; set; }
-        public decimal MinWager { get; set; }
-        public decimal MaxPayout { get; set; }
-        public decimal MinPayout { get; set; }
-
-    }
-
-    public class PlayerInfoDto
-    {
-        public string Player { get; set; }
-        public int IdPlayer { get; set; }
-        public int WagerType { get; set; }
-        public List<string> Leagues { get; set; }
-        public int IdWagerType { get; set; }
-        public int IdBook { get; set; }
-        public int IdProfile { get; set; }
-        public int IdProfileLimits { get; set; }
-        public int IdLanguage { get; set; }
-        public string NhlLine { get; set; }
-        public string MblLine { get; set; }
-        public int IdLineType { get; set; }
-        public string LineStyle { get; set; }
-        public float UTC { get; set; }
-        public int IdTimeZone { get; set; }
-        public string TimeZoneDesc { get; set; }
-        public int IdAgent { get; set; }
-        public Decimal CurrentBalance { get; set; }
-        public Decimal AmountAtRisk { get; set; }
-        public Decimal Available { get; set; }
-        public int IdCurrency { get; set; }
-        public string Currency { get; set; }
-        public string CurrencyDesc { get; set; }
-        public int PitcherDefault { get; set; }
-        public int GMT { get; set; }
-        public bool Access { get; set; }
-        //  public string Password { get; set; }
-        public int SecondsDelay { get; set; }
-    }
-
-
-
-    public class RespPlayerLastBet
-    {
-        public int idPlayer { get; set; }
-        public DateTime PlacedDateTime { get; set; }
-        public int HoursSinceLastBet { get; set; }
-    }
-
-    public class ReqPlayerLastBet
-    {
-        public int idPlayer { get; set; }
-    }
-
-
-    public class LSportStringResult
-    {
-        public Int64 IdWagerHeader { get; set; }
-        public Int64 IdLSportBet { get; set; }
-        public string Result { get; set; }
-    }
-
-    public class LSportSimpleInsertStraight
-    {
-        public string HeaderDescription { get; set; }
-        public string DetailDescription { get; set; }
-        public int MarketId { get; set; }
-        public int FixtureId { get; set; }
-        public Decimal Line { get; set; }
-        public Decimal Odds { get; set; }
-        public Decimal Risk { get; set; }
-        public Decimal Win { get; set; }
-        public int WagerSelection { get; set; }
-        public int IdPlayer { get; set; }
-        public int IdWagerType { get; set; }
-        public int IsLive { get; set; }
-        public string SideName { get; set; }
-    }
-
-    public class LSportSimpleInsertParlay
-    {
-        public string HeaderDescription { get; set; }
-        public string DetailDescription { get; set; }
-        public int MarketId { get; set; }
-        public int FixtureId { get; set; }
-        public string Points { get; set; }
-        public string Odds { get; set; }
-        public Decimal Risk { get; set; }
-        public Decimal Win { get; set; }
-        public string WagerSelectionPlay { get; set; }
-        public int IdPlayer { get; set; }
-        public int IdWagerType { get; set; }
-        public int IsLive { get; set; }
-        public string SideName { get; set; }
-        public int NumTeams { get; set; }
-        public string KeyDetails { get; set; }
-    }
-
-    public class PlayerDto
-    {
-        public int IdPlayer { get; set; }
-        public string? Player { get; set; }
-        public int IdProfile { get; set; }
-        public bool Access { get; set; }
-    }
-
-    public class PlayerDtoStream
-    {
-        public int IdPlayer { get; set; }
-        public string? Player { get; set; }
-        public string? Password { get; set; }
-        public int IdProfile { get; set; }
-        public bool Access { get; set; }
-    }
-}//end namespace
+}

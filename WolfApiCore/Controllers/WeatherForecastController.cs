@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 
-namespace WolfApiCore.Controllers
+namespace BetMasterApiCore.Controllers
 {
     [ApiController]
     [Route("[controller]")]

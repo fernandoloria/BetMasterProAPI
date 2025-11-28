@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace WolfApiCore.Models
+namespace BetMasterApiCore.Models
 {
     public class RequestStreamAccess
     {

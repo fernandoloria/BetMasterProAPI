@@ -1,9 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using WolfApiCore.DbTier;
-using WolfApiCore.Models;
-using static WolfApiCore.Models.AdminModels;
+using BetMasterApiCore.DbTier;
+using BetMasterApiCore.Models;
+using static BetMasterApiCore.Models.AdminModels;
 
-namespace WolfApiCore.Controllers
+namespace BetMasterApiCore.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]

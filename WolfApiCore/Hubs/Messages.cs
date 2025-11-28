@@ -3,7 +3,7 @@
 
 using Microsoft.AspNetCore.SignalR;
 
-namespace WolfApiCore.Hubs
+namespace BetMasterApiCore.Hubs
 {
     public class Messages : Hub
     {

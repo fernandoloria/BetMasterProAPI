@@ -1,4 +1,4 @@
-namespace WolfApiCore.Utilities
+namespace BetMasterApiCore.Utilities
 {
     public class Base64Service
     {

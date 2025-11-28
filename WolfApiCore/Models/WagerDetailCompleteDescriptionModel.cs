@@ -1,4 +1,4 @@
-namespace WolfApiCore.Models
+namespace BetMasterApiCore.Models
 {
     public class WagerDetailCompleteDescriptionModel
     {

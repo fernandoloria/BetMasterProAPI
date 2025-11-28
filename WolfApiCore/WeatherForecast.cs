@@ -1,4 +1,4 @@
-namespace WolfApiCore
+namespace BetMasterApiCore
 {
     public class WeatherForecast
     {

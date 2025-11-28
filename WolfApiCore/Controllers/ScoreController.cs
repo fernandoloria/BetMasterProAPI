@@ -1,13 +1,13 @@
 ﻿using Dapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
-using WolfApiCore.DbTier;
-using WolfApiCore.LSportApi;
-using WolfApiCore.Models;
+using BetMasterApiCore.DbTier;
+using BetMasterApiCore.LSportApi;
+using BetMasterApiCore.Models;
 
 
 
-namespace WolfApiCore.Controllers
+namespace BetMasterApiCore.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]

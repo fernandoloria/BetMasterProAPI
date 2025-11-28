@@ -1,9 +1,9 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
-using WolfApiCore.DbTier;
-using WolfApiCore.Models;
+using BetMasterApiCore.DbTier;
+using BetMasterApiCore.Models;
 
-namespace WolfApiCore.Utilities
+namespace BetMasterApiCore.Utilities
 {   
     public class MarketReplace
     {

@@ -5,15 +5,31 @@ using Microsoft.Data.SqlClient;
 using Newtonsoft.Json;
 using System.Data;
 using System.Net;
-using WolfApiCore.Models;
-using WolfApiCore.Stream;
+using BetMasterApiCore.Models;
+using BetMasterApiCore.Stream;
+using BetMasterApiCore.Utilities;
 
-namespace WolfApiCore.DbTier
+namespace BetMasterApiCore.DbTier
 {
     public static class StreamDbClass
     {
-        private static readonly string moverConnString = "Data Source=192.168.83.195;Initial Catalog=mover;Persist Security Info=True;User ID=live;Password=h!D8k*4)]25[XM'r;TrustServerCertificate=True";
+        private static readonly string moverConnString;
+        private static readonly DbConnectionHelper _dbHelper;
 
+        // 🔹 Constructor estático: se ejecuta una sola vez al cargar la clase
+        static StreamDbClass()
+        {
+            var builder = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+
+            IConfiguration config = builder.Build();
+
+            _dbHelper = new DbConnectionHelper(config);
+
+            // Obtiene la cadena desde appsettings.json
+            moverConnString = config.GetValue<string>("SrvSettings:DbConnMover");
+        }
         public static void PushNotification(BroadcastNotification notification)
         {   
             using (var connection = new SqlConnection(moverConnString))

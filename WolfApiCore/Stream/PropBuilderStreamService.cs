@@ -1,8 +1,8 @@
 ﻿using Newtonsoft.Json;
 using System.Net;
-using WolfApiCore.Models;
+using BetMasterApiCore.Models;
 
-namespace WolfApiCore.Stream
+namespace BetMasterApiCore.Stream
 {   
     public class PropBStreamModel
     {

@@ -3,60 +3,93 @@ using Dapper;
 using Microsoft.Data.SqlClient;
 using System.Collections.Immutable;
 using System.Data;
-using WolfApiCore.Models;
-using WolfApiCore.Utilities;
-using static WolfApiCore.Models.AdminModels;
+using BetMasterApiCore.Models;
+using BetMasterApiCore.Utilities;
+using static BetMasterApiCore.Models.AdminModels;
 
-namespace WolfApiCore.DbTier
+namespace BetMasterApiCore.DbTier
 {
     public class LiveDbClass
     {
-        private readonly string connString;
+        private readonly string connMover;
+        private readonly string connDgs;
+        private readonly DbConnectionHelper _dbHelper;
 
-        private static readonly string moverConnString = "Data Source=192.168.83.195;Initial Catalog=mover;Persist Security Info=True;User ID=live;Password=h!D8k*4)]25[XM'r;TrustServerCertificate=True";
-
-
-        public LiveDbClass(string ConnString)
+        public LiveDbClass(string connMover, string connDgs)
         {
-            connString = ConnString;
+            connMover = connMover;
+            connDgs = connDgs;
+        }
+        public LiveDbClass(string connMover)
+        {
+            connMover = connMover;
+            
         }
 
         public LiveDbClass()
         {
-            connString = moverConnString;
+            var builder = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+
+            IConfiguration config = builder.Build();
+
+            _dbHelper = new DbConnectionHelper(config);
+            connMover = config.GetValue<string>("SrvSettings:DbConnMover");
+            connDgs = config.GetValue<string>("SrvSettings:DbConnDGS");
         }
 
-        //private List<LSportGameDto> GetAllEventsByHour(int hours)
-        //{
-        //    List<LSportGameDto> resultList = new List<LSportGameDto>();
-        //    string sql = "exec sp_MGL_GetEventsByHour @hours";
-        //    var values = new { hours = hours };
+        public SiteInfo GetSiteInfo(int siteId)
+        {
+            try
+            {
+                using var connection = new SqlConnection(connMover);
+                string sql = "EXEC Sites_GetById @SiteID";
 
-        //    try
-        //    {
-        //        using var connection = new SqlConnection(connString);
-        //        resultList = connection.Query<LSportGameDto>(sql, values).ToList();
-
-
-        //        foreach (var game in resultList)
-        //        {
-        //            //get markets/lines
-
-
-        //            game.PropMarkets = ConvertToScreenProps(GetEventsMarketsLines(game.FixtureId), game.FixtureId);
+                return connection.QueryFirstOrDefault<SiteInfo>(sql, new { SiteID = siteId });
+            }
+            catch (Exception ex)
+            {
+                string value = ex.Message;
+                return null;
+            }
+        }
 
 
-        //        }
+        public List<SportDto> GetActiveSports(int idPlayer, int IdAgentM)//TODO, hay que meter el agent aqui
+        {
+            var result = new List<SportDto>();
 
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        //here todo log
-        //        string value = ex.Message;
-        //    }
+            try
+            {
+                LiveDbWager live = new LiveDbWager();
+                var hierarchy = live.GetPlayerHierarchy(idPlayer);
 
-        //    return resultList;
-        //}//end GetAllScores
+                int agentId = hierarchy.SubAgentId;   // Igual que en tu lógica actual
+                int playerId = hierarchy.PlayerId;
+
+                using (var connection = new SqlConnection(connMover))
+                {
+                    var sports = connection.Query<SportDto>(
+                        "Sport_GetActiveByPlayer",
+                        new
+                        {
+                            prmAgentId = agentId,
+                            prmPlayerId = playerId
+                        },
+                        commandType: CommandType.StoredProcedure
+                    ).ToList();
+
+                    result = sports;
+                }
+            }
+            catch (Exception ex)
+            {
+                // TODO agregar log
+            }
+
+            return result;
+        }
 
         [Obsolete("Duraba mucho iba N veces a la BD, se debe user GetAllActiveEventsMarketsLines")]
         private List<LSportGameDto> GetAllActiveEvents() 
@@ -69,7 +102,7 @@ namespace WolfApiCore.DbTier
             {
                 MarketReplace.LoadMarketsList(this);
 
-                using var connection = new SqlConnection(connString);
+                using var connection = new SqlConnection(connMover);
                 games = connection.Query<LSportGameDto>(sql/*, values*/).ToList();
 
                 foreach (var game in games)
@@ -100,7 +133,7 @@ namespace WolfApiCore.DbTier
             {
                 MarketReplace.LoadMarketsList(this);
 
-                using var connection = new SqlConnection(connString);
+                using var connection = new SqlConnection(connMover);
                 var gamesWithMarkets = connection.Query<LSportGameAndMarketsDto>(sql).ToList();
 
                 var fixtures = gamesWithMarkets.GroupBy(g => g.FixtureId);
@@ -202,7 +235,7 @@ namespace WolfApiCore.DbTier
             var signalEvents = new List<LSportGameDto>();
             try
             {
-                using var connection = new SqlConnection(connString);
+                using var connection = new SqlConnection(connMover);
                 signalEvents = connection.Query<LSportGameDto>("exec [sp_MGL_GetSignalEvents]"/*, new { StatusId = StatusId }*/).ToList();
 
 
@@ -226,8 +259,6 @@ namespace WolfApiCore.DbTier
             return signalEvents;
         }//end GetAllScores
 
-
-
         public List<LSportGameDto> GetSignalEventsV2()
         {   
             var signalEvents = new List<GameMarketAndLinesDTO>();
@@ -237,7 +268,7 @@ namespace WolfApiCore.DbTier
 
             try
             {
-                using (var connection = new SqlConnection(connString))
+                using (var connection = new SqlConnection(connMover))
                 {
                     //trae todos los events con los market y lineas aplanados en una sola consulta...
                     signalEvents = connection.Query<GameMarketAndLinesDTO>("exec [sp_MGL_GetSignalEventsV2]").ToList();
@@ -336,7 +367,6 @@ namespace WolfApiCore.DbTier
             return gamesDTO;
         }
 
-
         public List<LSportGameDto> GetSignalEventsV3()
         // usar multi-mapping de Dapper...
         {
@@ -345,7 +375,7 @@ namespace WolfApiCore.DbTier
 
             try
             {
-                using (var connection = new SqlConnection(connString))
+                using (var connection = new SqlConnection(connMover))
                 {
                     connection.Open();
 
@@ -419,8 +449,6 @@ namespace WolfApiCore.DbTier
             return gamesDTO;
         }
 
-
-
         public LSportGameDto GetEventByFixture(int FixtureId)
         {
             LSportGameDto resultGame = new LSportGameDto();
@@ -429,7 +457,7 @@ namespace WolfApiCore.DbTier
 
             try
             {
-                using var connection = new SqlConnection(connString);
+                using var connection = new SqlConnection(connMover);
                 resultGame = connection.Query<LSportGameDto>(sql, values).FirstOrDefault();
                 if (resultGame != null)
                     resultGame.PropMarkets = ConvertToScreenProps(GetEventsMarketsLines(FixtureId, resultGame.SportId), resultGame.FixtureId);
@@ -751,10 +779,9 @@ namespace WolfApiCore.DbTier
             TotalWagersDTO? ProfileLimitsResp = new TotalWagersDTO();
             try
             {
-                string dgsConnString = "Data Source=192.168.83.195;Initial Catalog=DGSDATA;Persist Security Info=True;User ID=Payments;Password=p@yM3nts2701;TrustServerCertificate=True";
                 string sql = "exec Game_GetWagersCount @prmIdGame";
                 var values = new { prmIdGame };
-                using var connection = new SqlConnection(dgsConnString);
+                using var connection = new SqlConnection(connDgs);
                 ProfileLimitsResp = connection.Query<TotalWagersDTO>(sql, values).FirstOrDefault();
             }
             catch (Exception ex)
@@ -768,10 +795,9 @@ namespace WolfApiCore.DbTier
             GameDGS oGame = new GameDGS();
             try
             {
-                string dgsConnString = "Data Source=192.168.83.195;Initial Catalog=DGSDATA;Persist Security Info=True;User ID=Payments;Password=p@yM3nts2701;TrustServerCertificate=True";
                 string sql = "exec GetPrematchIdGameByFixtureId @FixtureId";
                 var values = new { FixtureId };
-                using var connection = new SqlConnection(dgsConnString);
+                using var connection = new SqlConnection(connDgs);
                 oGame = connection.Query<GameDGS>(sql, values).FirstOrDefault();
             }
             catch (Exception ex)
@@ -981,7 +1007,7 @@ namespace WolfApiCore.DbTier
         //    LSport_EventValuesDto eventValues = new LSport_EventValuesDto();
         //    try
         //    {
-        //        using var connection = new SqlConnection(connString);
+        //        using var connection = new SqlConnection(connMover);
         //        var values = connection.Query<LSport_EventValuesDto>(@"SELECT [FixtureID]
         //                                                                      ,[MarketID]
         //                                                                      ,[VisitorSpread]
@@ -1014,7 +1040,7 @@ namespace WolfApiCore.DbTier
         //    List<LSport_EventPropMarketDto> eventValues = new List<LSport_EventPropMarketDto>();
         //    try
         //    {
-        //        using var connection = new SqlConnection(connString);
+        //        using var connection = new SqlConnection(connMover);
         //        var propList = connection.Query<LSport_EventPropDto>(@"SELECT  [FixtureID]
         //                                                                      ,PROP.MarketId
         //                                                                      ,[Line1]
@@ -1181,7 +1207,7 @@ namespace WolfApiCore.DbTier
         //    List<LSport_SportsDto> Sports = new List<LSport_SportsDto>();
         //    try
         //    {
-        //        using var connection = new SqlConnection(connString);
+        //        using var connection = new SqlConnection(connMover);
         //        Sports = connection.Query<LSport_SportsDto>("SELECT [SportID], [SportName] FROM [DGSData].[dbo].[DBA_LSports_Sport]").ToList();
         //    }
         //    catch (Exception ex)
@@ -1196,7 +1222,7 @@ namespace WolfApiCore.DbTier
         //    List<LSport_Leagues> Leagues = new List<LSport_Leagues>();
         //    try
         //    {
-        //        using var connection = new SqlConnection(connString);
+        //        using var connection = new SqlConnection(connMover);
         //        Leagues = connection.Query<LSport_Leagues>("SELECT [LeagueID], [SportID],[LeagueName], [LocationID]  FROM [DGSData].[dbo].[DBA_LSports_League]").ToList();
         //    }
         //    catch (Exception ex)
@@ -1211,7 +1237,7 @@ namespace WolfApiCore.DbTier
         //    List<LSport_LocationDto> Locations = new List<LSport_LocationDto>();
         //    try
         //    {
-        //        using var connection = new SqlConnection(connString);
+        //        using var connection = new SqlConnection(connMover);
         //        Locations = connection.Query<LSport_LocationDto>("SELECT  [LocationID], [LocationName]  FROM [DGSData].[dbo].[DBA_LSports_Location]").ToList();
         //    }
         //    catch (Exception ex)
@@ -1229,7 +1255,7 @@ namespace WolfApiCore.DbTier
             List<CompletePropMarket> resp = new List<CompletePropMarket>();
             try
             {
-                using (var connection = new SqlConnection(connString))
+                using (var connection = new SqlConnection(connMover))
                 {
                     var procedure = "[sp_MGL_GetEventsMarketsLines]";
                     var values = new
@@ -1253,7 +1279,7 @@ namespace WolfApiCore.DbTier
         //    CompletePropMarket resp = new CompletePropMarket();
         //    try
         //    {
-        //        using (var connection = new SqlConnection(connString))
+        //        using (var connection = new SqlConnection(connMover))
         //        {
         //            var procedure = "[sp_MGL_GetEventsMarketsLineById]";
         //            var values = new
@@ -1582,7 +1608,7 @@ namespace WolfApiCore.DbTier
             var values = new { FixtureId };
             try
             {
-                using var connection = new SqlConnection(connString);
+                using var connection = new SqlConnection(connMover);
                 Participants = connection.Query<ParticipantDto>(sql, values).ToList();
             }
             catch (Exception ex)
@@ -1598,7 +1624,7 @@ namespace WolfApiCore.DbTier
             var values = new { IdPlayer };
             try
             {
-                using var connection = new SqlConnection(connString);
+                using var connection = new SqlConnection(connMover);
                 resp = connection.Query<OpenBetsDTO>(sql, values).ToList();
             }
             catch (Exception ex) 
@@ -1615,7 +1641,7 @@ namespace WolfApiCore.DbTier
             var values = new { req.IdPlayer, req.InitDate, req.EndDate };
             try
             {
-                using var connection = new SqlConnection(connString);
+                using var connection = new SqlConnection(connMover);
                 resp = connection.Query<HistoryBetsDTO>(sql, values).ToList();
             }
             catch (Exception ex)
@@ -1631,7 +1657,7 @@ namespace WolfApiCore.DbTier
             string sql = "exec sp_MGL_GetMarketReplace1x2 ";
             try
             {
-                using var connection = new SqlConnection(connString);
+                using var connection = new SqlConnection(connMover);
                 resp = connection.Query<int>(sql).ToList();
             }
             catch (Exception ex)
@@ -1647,7 +1673,7 @@ namespace WolfApiCore.DbTier
             string sql = "exec sp_MGL_GetMarketsReplaceNever1X2 ";
             try
             {
-                using var connection = new SqlConnection(connString);
+                using var connection = new SqlConnection(connMover);
                 resp = connection.Query<int>(sql).ToList();
             }
             catch (Exception ex)
@@ -1657,16 +1683,13 @@ namespace WolfApiCore.DbTier
             return resp;
         }
 
-        
-
-
         public void WriteSignalRUpdaterIP(string ipAddress)
         {
             try
             {
                 string sql = "exec sp_MGL_SignalRLog @ip";
                 var values = new { ip = ipAddress };
-                using var connection = new SqlConnection(connString);
+                using var connection = new SqlConnection(connMover);
                 connection.Execute(sql, values);
             }
             catch (Exception ex)
@@ -1684,7 +1707,7 @@ namespace WolfApiCore.DbTier
         }
 
 
-    }//end class
+    }
 
     public class OpenBetsDTO {
         public int IdPlayer { get; set; }
@@ -1757,4 +1780,4 @@ namespace WolfApiCore.DbTier
     {
         public int IdGame { get; set; }
     }
-}//end namespace
+}

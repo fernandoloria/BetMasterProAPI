@@ -2,10 +2,10 @@
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
-using WolfApiCore.DbTier;
-using WolfApiCore.Models;
+using BetMasterApiCore.DbTier;
+using BetMasterApiCore.Models;
 
-namespace WolfApiCore.Stream
+namespace BetMasterApiCore.Stream
 {
     public class BroadcastNotification
     {

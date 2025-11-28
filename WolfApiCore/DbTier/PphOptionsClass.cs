@@ -1,14 +1,33 @@
 ﻿using Dapper;
 using Microsoft.Data.SqlClient;
-using WolfApiCore.Models;
+using BetMasterApiCore.Models;
+using BetMasterApiCore.Utilities;
 
-namespace WolfApiCore.DbTier
+namespace BetMasterApiCore.DbTier
 {
     public class PphOptionsClass
     {
 
-        private readonly string moverConnString = "Data Source=192.168.11.36;Initial Catalog=mover;Persist Security Info=True;User ID=live;Password=h!D8k*4)]25[XM'r;TrustServerCertificate=True";
+        private readonly string moverConnString;
+        private readonly DbConnectionHelper _dbHelper;
 
+        public PphOptionsClass(string moverConn)
+        {
+            moverConnString = moverConn;
+        }
+
+        public PphOptionsClass()
+        {
+            var builder = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+
+            IConfiguration config = builder.Build();
+
+            _dbHelper = new DbConnectionHelper(config);
+
+            moverConnString = config.GetValue<string>("SrvSettings:DbConnMover");
+        }
 
         public List<RespPphOptionsModel> getPphOptions(ReqPphOptionsModel req)
         {

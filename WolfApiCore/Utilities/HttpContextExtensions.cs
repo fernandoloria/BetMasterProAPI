@@ -1,6 +1,6 @@
 ﻿using System.Net;
 
-namespace WolfApiCore.Utilities
+namespace BetMasterApiCore.Utilities
 {
     public static class HttpContextExtensions
     {

@@ -1,159 +1,141 @@
 using Azure.Core;
 using Microsoft.Extensions.Configuration;
-using WolfApiCore.DbTier;
-using WolfApiCore.Hubs;
-using WolfApiCore.Models;
-using WolfApiCore.Utilities;
-using WolfApiCore.Stream;
-
+using BetMasterApiCore.DbTier;
+using BetMasterApiCore.Hubs;
+using BetMasterApiCore.Models;
+using BetMasterApiCore.Utilities;
+using BetMasterApiCore.Stream;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-/* TEST EzStream 
-RequestStreamAccess request = new RequestStreamAccess
-{
-    IdPlayer = 300563,
-    FixtureId = 13407623,
-    Sportname = "Baseball",
-    HomeTeam = "Minnesota Twins",
-    VisitorTeam = "Kansas City Royals"
-};
-var URL = EzStreamService.getEzStream(request);
-*/
+// JWT settings
+var key = builder.Configuration["Jwt:Key"];
+var issuer = builder.Configuration["Jwt:Issuer"];
+var audience = builder.Configuration["Jwt:Audience"];
 
-
-
-// TEST Get Games And Lines
-/*
-string moverConnString = "Data Source=192.168.83.195;Initial Catalog=mover;Persist Security Info=True;User ID=live;Password=h!D8k*4)]25[XM'r;TrustServerCertificate=True";
-var liveDbClass = new LiveDbClass(moverConnString);
-var resultData1 = liveDbClass.GetGamesAndLines(300563);
-var resultData2 = liveDbClass.GetGamesAndLinesV2(300563);
-
-if (resultData1.Count == resultData2.Count)
-    throw new Exception("Fin del Test");
-*/
-
-
-// TEST DE RENDIMIENTO SingalEvents
-/*
-string moverConnString = "Data Source=192.168.83.195;Initial Catalog=mover;Persist Security Info=True;User ID=live;Password=h!D8k*4)]25[XM'r;TrustServerCertificate=True";
-var db = new LiveDbClass(moverConnString);
-
-//db.GetSignalEvents();
-var se1 = db.GetSignalEvents();
-var se2 = db.GetSignalEventsV2();
-var se3 = db.GetSignalEventsV3();
-
-Console.WriteLine("Test finished!");
-*/
-
-//-- TEST -----------------------------------
-/*
-var testEnabled = true;
-
-if(testEnabled)
-{
-    var dbWager = new LiveDbWager();
-
-    LSport_BetSlipObj betslip = new LSport_BetSlipObj();
-
-    betslip.IdPlayer = 300563;
-    betslip.IsMobile = true;    
-
-
-    betslip.Events = new List<LSport_BetGame>();
-
-    betslip.Events.Add(new LSport_BetGame()
-    {
-        FixtureId = 12752240,
-        SportName = "Golf",
-        LeagueName = "Zurich Classic of New Orleans",
-        HomeTeam = null,
-        VisitorTeam = "Sam Stevens / Paul Barjon",
-        Selections = new List<LSport_EventPropDto>()
-    });
-
-    //163145791010518376	10518376	274	Outright Winner	NULL	Scottie Scheffler	1	1.0	5	53	2024-04-11 23:51:17.403	140	2024-04-11 19:51:17.063	NULL	NULL
-
-    betslip.Events[0].Selections.Add(new LSport_EventPropDto() 
-    {
-        IdL1 = "136893673112752240",
-        FixtureId = 12752240,
-        MarketId = 274,
-        MarketName = "Outright Winner",
-        Line1 = null,
-        Odds1 = 335,
-        Price = 5.5m,
-        Name = "RORY MCILROY / SHANE LOWR",
-        BaseLine = null,
-        BsRiskAmount = 10,
-        BsWinAmount = 33.5m
-    });
-
-
-    dbWager.ValidateSelectionsForWagers(betslip);
-}
-*/
-//------------------------------------------
-
-// Add services to the container.
-
+// Add services
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
+builder.Services.AddScoped<DbConnectionHelper>();
 builder.Services.AddSignalR();
 builder.Services.AddTransient<Base64Service>();
+builder.Services.AddSingleton<JwtService>();
 
+// JWT Authentication
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.RequireHttpsMetadata = false; // Solo para pruebas locales
+    options.SaveToken = true;
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = issuer,
+        ValidAudience = audience,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key))
+    };
+});
 
 string MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 
+// CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy(name: MyAllowSpecificOrigins,
-                      policy =>
-                      {
-                          policy.WithOrigins("http://localhost:4200", 
-                                             "http://localhost:8101", 
-                                             "http://localhost:5500", 
-                                             "https://pph-design.netlify.app",
-                                             "http://www.contoso.com",
-                                             "http://live.bridgehost.net",
-                                             "https://live.bridgehost.net",
-                                             "https://vegasliveadmin.bridgehost.net", 
-                                             "https://vegaslive.bet", 
-                                             "https://streaming.vegaslive.bet", 
-                                             "https://propb.bridgehost.net", 
-                                             "https://scores.bridgehost.net")
-                          .AllowAnyMethod()
-                          .AllowAnyHeader()
-                          .AllowCredentials();
-                      });
+    options.AddPolicy(name: MyAllowSpecificOrigins, policy =>
+    {
+        policy.SetIsOriginAllowed(origin =>
+        {
+            if (string.IsNullOrEmpty(origin))
+                return false;
+
+            // Permitir cualquier dominio Replit
+            if (origin.Contains("replit.app"))
+                return true;
+
+            if (origin.Contains("repl.co"))
+                return true;
+
+            // Dominios permitidos manualmente
+            var allowedOrigins = new[]
+            {
+                "http://localhost",
+                "https://liveapi.api.cr",
+                "https://api.betmasterpro.net",
+                "https://live.api.cr",
+                "https://live.betmasterpro.net"
+            };
+
+            return allowedOrigins.Any(origin.StartsWith);
+        })
+        .AllowAnyMethod()
+        .AllowAnyHeader()
+        .AllowCredentials();
+    });
 });
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// LOG A ARCHIVO PARA DEBUG
+app.Use(async (context, next) =>
+{
+    try
+    {
+        var logFolder = Path.Combine(AppContext.BaseDirectory, "logs");
+        if (!Directory.Exists(logFolder))
+            Directory.CreateDirectory(logFolder);
+
+        var logFile = Path.Combine(logFolder, "requests.log");
+
+        var origin = context.Request.Headers["Origin"].ToString();
+        var auth = context.Request.Headers["Authorization"].ToString();
+        var path = context.Request.Path;
+
+        var logMessage =
+            $"--- REQUEST {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC ---\n" +
+            $"Origin: {origin}\n" +
+            $"Auth: {auth}\n" +
+            $"Path: {path}\n" +
+            $"----------------------------------------------\n";
+
+        await File.AppendAllTextAsync(logFile, logMessage);
+    }
+    catch
+    {
+        // No tirar error si el log falla
+    }
+
+    await next();
+});
+
+
+// Swagger solo en dev
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-
 app.UseHttpsRedirection();
 
+// ORDEN CORRECTO:
+app.UseCors(MyAllowSpecificOrigins);
+app.UseAuthentication();
 app.UseAuthorization();
 
-app.UseCors(MyAllowSpecificOrigins);
-
 app.MapControllers();
-//signalR config
 
+// SignalR
 app.MapHub<Messages>("cnn").AllowAnonymous();
-//app.MapHub<MessagesPb>("cnnpb").AllowAnonymous();
-//**************
 
 app.Run();

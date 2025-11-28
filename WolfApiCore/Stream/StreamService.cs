@@ -2,10 +2,10 @@
 using Azure;
 using Newtonsoft.Json;
 using System.Net;
-using WolfApiCore.DbTier;
-using WolfApiCore.Models;
+using BetMasterApiCore.DbTier;
+using BetMasterApiCore.Models;
 
-namespace WolfApiCore.Stream
+namespace BetMasterApiCore.Stream
 {
     public static class StreamService
     {

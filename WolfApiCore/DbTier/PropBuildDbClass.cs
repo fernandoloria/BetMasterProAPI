@@ -1,18 +1,35 @@
 ﻿using Microsoft.Data.SqlClient;
-using static WolfApiCore.Models.AdminModels;
+using static BetMasterApiCore.Models.AdminModels;
 using System.Data;
-using WolfApiCore.Models;
+using BetMasterApiCore.Models;
 using Dapper;
+using BetMasterApiCore.Utilities;
 
-namespace WolfApiCore.DbTier
+namespace BetMasterApiCore.DbTier
 {
     public class PropBuildDbClass
     {
         private readonly string connString;
+        private readonly string connDgs;
+        private readonly DbConnectionHelper _dbHelper;
+
 
         public PropBuildDbClass(string ConnString)
         {
             connString = ConnString;
+        }
+
+        public PropBuildDbClass()
+        {
+            var builder = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+
+            IConfiguration config = builder.Build();
+
+            _dbHelper = new DbConnectionHelper(config);
+            connString = config.GetValue<string>("SrvSettings:DbConnMover");
+            connDgs = config.GetValue<string>("SrvSettings:DbConnDGS");
         }
 
         private List<LSportGameDto> GetAllActiveEvents()
@@ -231,10 +248,9 @@ namespace WolfApiCore.DbTier
             TotalWagersDTO? ProfileLimitsResp = new TotalWagersDTO();
             try
             {
-                string dgsConnString = "Data Source=192.168.83.195;Initial Catalog=DGSDATA;Persist Security Info=True;User ID=Payments;Password=p@yM3nts2701;TrustServerCertificate=True";
                 string sql = "exec Game_GetWagersCount @prmIdGame";
                 var values = new { prmIdGame };
-                using var connection = new SqlConnection(dgsConnString);
+                using var connection = new SqlConnection(connDgs);
                 ProfileLimitsResp = connection.Query<TotalWagersDTO>(sql, values).FirstOrDefault();
             }
             catch (Exception ex)
@@ -249,10 +265,9 @@ namespace WolfApiCore.DbTier
             GameDGS oGame = new GameDGS();
             try
             {
-                string dgsConnString = "Data Source=192.168.83.195;Initial Catalog=DGSDATA;Persist Security Info=True;User ID=Payments;Password=p@yM3nts2701;TrustServerCertificate=True";
                 string sql = "exec GetPrematchIdGameByFixtureId @FixtureId";
                 var values = new { FixtureId };
-                using var connection = new SqlConnection(dgsConnString);
+                using var connection = new SqlConnection(connDgs);
                 oGame = connection.Query<GameDGS>(sql, values).FirstOrDefault();
             }
             catch (Exception ex)

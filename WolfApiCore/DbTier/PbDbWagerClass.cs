@@ -1,18 +1,38 @@
 ﻿using Dapper;
 using Microsoft.Data.SqlClient;
-using static WolfApiCore.Models.AdminModels;
+using static BetMasterApiCore.Models.AdminModels;
 using System.Data;
-using WolfApiCore.Models;
-using static WolfApiCore.Models.LsportsSports;
+using BetMasterApiCore.Models;
+using static BetMasterApiCore.Models.LsportsSports;
 using System.Security.Cryptography.X509Certificates;
+using BetMasterApiCore.Utilities;
 
-namespace WolfApiCore.DbTier
+namespace BetMasterApiCore.DbTier
 {
     public class PbDbWagerClass
     {
-        private readonly string dgsConnString = "Data Source=192.168.83.195;Initial Catalog=DGSDATA;Persist Security Info=True;User ID=Payments;Password=p@yM3nts2701;TrustServerCertificate=True";
-        private readonly string moverConnString = "Data Source=192.168.83.195;Initial Catalog=mover;Persist Security Info=True;User ID=live;Password=h!D8k*4)]25[XM'r;TrustServerCertificate=True";
+        private readonly string dgsConnString;
+        private readonly string moverConnString;
+        private readonly DbConnectionHelper _dbHelper;
 
+        public PbDbWagerClass(string dgsConn, string moverConn)
+        {
+            dgsConnString = dgsConn;
+            moverConnString = moverConn;
+        }
+        public PbDbWagerClass()
+        {
+            var builder = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+
+            IConfiguration config = builder.Build();
+
+            _dbHelper = new DbConnectionHelper(config);
+
+            dgsConnString = config.GetValue<string>("SrvSettings:DbConnDGS");
+            moverConnString = config.GetValue<string>("SrvSettings:DbConnMover");
+        }
         public LSport_BetSlipObj ValidateSelectionsForWagers(LSport_BetSlipObj Betslip)
         {
             var validForParlay = true;
@@ -322,7 +342,7 @@ namespace WolfApiCore.DbTier
         private PlayerLimitsHierarchyParlay GetPlayerLimitsParlay(int PlayerId)
         {
             var oPlayerHierarchy = GetPlayerHierarchy(PlayerId);
-            LiveDbClass oLiveClass = new LiveDbClass(moverConnString);
+            LiveDbClass oLiveClass = new LiveDbClass(moverConnString, dgsConnString);
             LiveAdminDbClass oAdminClass = new LiveAdminDbClass();
             PlayerLimitsHierarchyParlay resp = new PlayerLimitsHierarchyParlay
             {
@@ -389,7 +409,7 @@ namespace WolfApiCore.DbTier
         private PlayerLimitsHierarchyStraight GetPlayerLimitsStraight(int PlayerId, int FixtureId)
         {
             var oPlayerHierarchy = GetPlayerHierarchy(PlayerId);
-            LiveDbClass oLiveClass = new LiveDbClass(moverConnString);
+            LiveDbClass oLiveClass = new LiveDbClass(moverConnString, dgsConnString);
             LiveAdminDbClass oAdminClass = new LiveAdminDbClass();
             PlayerLimitsHierarchyStraight resp = new PlayerLimitsHierarchyStraight
             {
@@ -455,7 +475,7 @@ namespace WolfApiCore.DbTier
         private AgentLimitsHierarchyStraight GetAgentLimitsStraight(int PlayerId, int FixtureId)
         {
             var oPlayerHierarchy = GetPlayerHierarchy(PlayerId);
-            LiveDbClass oLiveClass = new LiveDbClass(moverConnString);
+            LiveDbClass oLiveClass = new LiveDbClass(moverConnString, dgsConnString);
             LiveAdminDbClass oAdminClass = new LiveAdminDbClass();
             AgentLimitsHierarchyStraight resp = new AgentLimitsHierarchyStraight
             {
@@ -562,7 +582,7 @@ namespace WolfApiCore.DbTier
         private AgentLimitsHierarchyParlay GetAgentLimitsParlay(int PlayerId)
         {
             var oPlayerHierarchy = GetPlayerHierarchy(PlayerId);
-            LiveDbClass oLiveClass = new LiveDbClass(moverConnString);
+            LiveDbClass oLiveClass = new LiveDbClass(moverConnString, dgsConnString);
             LiveAdminDbClass oAdminClass = new LiveAdminDbClass();
             AgentLimitsHierarchyParlay resp = new AgentLimitsHierarchyParlay
             {

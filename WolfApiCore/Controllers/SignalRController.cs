@@ -1,10 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
-using WolfApiCore.DbTier;
-using WolfApiCore.Hubs;
-using WolfApiCore.Utilities;
+using BetMasterApiCore.DbTier;
+using BetMasterApiCore.Hubs;
+using BetMasterApiCore.Utilities;
+using Microsoft.AspNetCore.Authorization;
 
-namespace WolfApiCore.Controllers
+namespace BetMasterApiCore.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
@@ -23,6 +24,7 @@ namespace WolfApiCore.Controllers
         }
 
 
+        [Authorize]
         [HttpGet("GetChangedOrNewScores/{FixtureId}")]
         public async Task<IActionResult> GetChangedOrNewScores(int FixtureId)
         {            
@@ -37,18 +39,7 @@ namespace WolfApiCore.Controllers
             return Ok(new { resp = "all is ok" });
         }
 
-        //[HttpGet("GetChangedOrNewScoresPb/{FixtureId}")]
-        //public async Task<IActionResult> GetChangedOrNewScorespb(int FixtureId)
-        //{
-        //    //  var gamesAndLines = new LiveDbClass().GetGamesAndLines(hour);
-        //    var connString = _configuration.GetValue<string>("SrvSettings:DbConnMover");
-
-        //    var gamesAndLines = new PropBuildDbClass(connString).GetSignalFixtures();
-
-        //    await _hubContextpb.Clients.All.SendAsync("SendAllGamesAndLinesPb", gamesAndLines);
-
-        //    return Ok(new { resp = "all is ok pb" });
-        //}
+       
 
     }
 }

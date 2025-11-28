@@ -1,15 +1,34 @@
 ﻿using Dapper;
 using Microsoft.Data.SqlClient;
-using WolfApiCore.Models;
-using static WolfApiCore.Models.AdminModels;
+using BetMasterApiCore.Models;
+using static BetMasterApiCore.Models.AdminModels;
 using Dapper;
+using BetMasterApiCore.Utilities;
 
-namespace WolfApiCore.DbTier
+namespace BetMasterApiCore.DbTier
 {
     public class ScoreDbClass
     {
-        private readonly string moverConnString = "Data Source=192.168.11.36;Initial Catalog=mover;Persist Security Info=True;User ID=live;Password=h!D8k*4)]25[XM'r;TrustServerCertificate=True";
+        private readonly string moverConnString;
+        private readonly DbConnectionHelper _dbHelper;
 
+        public ScoreDbClass(string moverConn)
+        {
+            moverConnString = moverConn;
+        }
+
+        public ScoreDbClass()
+        {
+            var builder = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+
+            IConfiguration config = builder.Build();
+
+            _dbHelper = new DbConnectionHelper(config);
+
+            moverConnString = config.GetValue<string>("SrvSettings:DbConnMover");
+        }
         public RespScore InsertScores(List<ReqScore> req)
         {
             RespScore resp = new RespScore()

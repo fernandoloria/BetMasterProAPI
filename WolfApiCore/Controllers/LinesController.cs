@@ -1,11 +1,13 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
-using WolfApiCore.DbTier;
-using WolfApiCore.Models;
-using WolfApiCore.Stream;
-using WolfApiCore.Utilities;
+using BetMasterApiCore.DbTier;
+using BetMasterApiCore.Models;
+using BetMasterApiCore.Stream;
+using BetMasterApiCore.Utilities;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
-namespace WolfApiCore.Controllers
+namespace BetMasterApiCore.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
@@ -20,28 +22,106 @@ namespace WolfApiCore.Controllers
             _base64Service = base64Service;
         }
 
+
+        [HttpPost("Auth/Exchange")]
+        public IActionResult ExchangeToken([FromBody] ExchangeRequest request, [FromServices] JwtService jwtService)
+        {
+            if (request == null || string.IsNullOrEmpty(request.Piden) || request.SiteId <= 0)
+                return BadRequest(new { code = "INVALID_REQUEST", message = "Missing piden or siteId." });
+
+            try
+            {
+                var dataAccess = new LiveDbClass();
+                SiteInfo site = dataAccess.GetSiteInfo(request.SiteId);
+
+                if (site == null)
+                    return Unauthorized(new { code = "INVALID_SITE", message = "Site not found." });
+
+                if (!site.IsActive)
+                    return StatusCode(403, new { code = "SITE_INACTIVE", message = "This site is suspended." });
+
+                string json = CryptoHelper.DecryptAes(request.Piden, site.SecretKey);
+                if (string.IsNullOrEmpty(json))
+                    return Unauthorized(new { code = "DECRYPT_ERROR", message = "Invalid or expired token." });
+
+                dynamic data = Newtonsoft.Json.JsonConvert.DeserializeObject(json);
+                int idPlayer = Convert.ToInt32(data.idPlayer);
+                int idCall = Convert.ToInt32(data.idCall);
+
+                string jwt = jwtService.GenerateJwt(idPlayer, idCall, site.SiteId);
+
+                site.SecretKey = null;
+                var response = new ExchangeResponse
+                {
+                    Jwt = jwt,
+                    IdPlayer = idPlayer,
+                    IdCall = idCall
+                    //,Site = site
+                };
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { code = "SERVER_ERROR", message = ex.Message });
+            }
+        }
+
+        [Authorize]
         [HttpPost("GetLastBetHours")]
         public RespPlayerLastBet GetLastBetHours(ReqPlayerLastBet idplayer)
         {
             return new LiveDbWager().GetLastBetHours(idplayer.idPlayer);
         }
 
-        [HttpGet("GetGamesAndLines/{idplayer}")]
-        public List<LSport_ScreenSportsDto> GetGamesAndLines(int idPlayer)
+        [Authorize]
+        [HttpGet("GetGamesAndLines")]
+        public List<LSport_ScreenSportsDto> GetGamesAndLines()
         {
+
+            var identity = (ClaimsIdentity)User.Identity;
+
+            var idPlayerClaim = identity.FindFirst("idPlayer")?.Value;
+            var idCallClaim = identity.FindFirst("idCall")?.Value;
+            var siteIdClaim = identity.FindFirst("siteId")?.Value;
+
+            if (idPlayerClaim == null || idCallClaim == null || siteIdClaim == null)
+                throw new UnauthorizedAccessException("Missing required claims in token.");
+
+            int idPlayer = Convert.ToInt32(idPlayerClaim);
+            int idCall = Convert.ToInt32(idCallClaim);
+            int siteId = Convert.ToInt32(siteIdClaim);
+
             var connString = _configuration.GetValue<string>("SrvSettings:DbConnMover");
-            var resultData = new LiveDbClass(connString).GetGamesAndLines(idPlayer);
+            //var resultData = new LiveDbClass().GetGamesAndLines(idPlayer);
+            var resultData = new LiveDbClass().GetGamesAndLinesV2(idPlayer);
+            
             return resultData;
         }
 
-        [HttpGet("GetGamesAndLinesV2/{idplayer}")]
-        public List<LSport_ScreenSportsDto> GetGamesAndLinesV2(int idPlayer)
+        [Authorize]
+        [HttpGet("GetGamesAndLinesV2")]
+        public List<LSport_ScreenSportsDto> GetGamesAndLinesV2()
         {
+            var identity = (ClaimsIdentity)User.Identity;
+
+            var idPlayerClaim = identity.FindFirst("idPlayer")?.Value;
+            var idCallClaim = identity.FindFirst("idCall")?.Value;
+            var siteIdClaim = identity.FindFirst("siteId")?.Value;
+
+            if (idPlayerClaim == null || idCallClaim == null || siteIdClaim == null)
+                throw new UnauthorizedAccessException("Missing required claims in token.");
+
+            int idPlayer = Convert.ToInt32(idPlayerClaim);
+            int idCall = Convert.ToInt32(idCallClaim);
+            int siteId = Convert.ToInt32(siteIdClaim);
+
             var connString = _configuration.GetValue<string>("SrvSettings:DbConnMover");
-            var resultData = new LiveDbClass(connString).GetGamesAndLinesV2(idPlayer);
+            var resultData = new LiveDbClass().GetGamesAndLinesV2(idPlayer);
             return resultData;
         }
 
+        [Authorize]
         [HttpPost("CreateWager")]
         public LSport_BetSlipObj CreateWager(LSport_BetSlipObj Betslip)
         {
@@ -49,44 +129,71 @@ namespace WolfApiCore.Controllers
             return new LiveDbWager().ValidateSelectionsForWagers(Betslip);
         }
 
+        [Authorize]
         [HttpPost("GetHistoryBets")]
         public List<HistoryBetsDTO> GetHistoryBets(HistoryReq req)
         {
             var connString = _configuration.GetValue<string>("SrvSettings:DbConnMover");
-            return new LiveDbClass(connString).GetHistoryBets(req);
+            return new LiveDbClass().GetHistoryBets(req);
         }
 
-        [HttpGet("GetPlayerInfo/{idplayer}")]
-        public PlayerInfoDto GetPlayerInfo(int idplayer)
+        [Authorize]
+        [HttpGet("GetPlayerInfo")]
+        public PlayerInfoDto GetPlayerInfo()
         {
-            return new LiveDbWager().GetPlayerInfo(idplayer);
+            var identity = (ClaimsIdentity)User.Identity;
+
+            var idPlayerClaim = identity.FindFirst("idPlayer")?.Value;
+            var idCallClaim = identity.FindFirst("idCall")?.Value;
+            var siteIdClaim = identity.FindFirst("siteId")?.Value;
+
+            if (idPlayerClaim == null || idCallClaim == null || siteIdClaim == null)
+                throw new UnauthorizedAccessException("Missing required claims in token.");
+
+            int idPlayer = Convert.ToInt32(idPlayerClaim);
+            int idCall = Convert.ToInt32(idCallClaim);
+            int siteId = Convert.ToInt32(siteIdClaim);
+
+            return new LiveDbWager().GetPlayerInfo(idPlayer, idCall);
         }
 
-        [HttpGet("GetOpenBets/{idplayer}")]
-        public List<OpenBetsDTO> GetOpenBets(int idplayer)
+        [Authorize]
+        [HttpGet("GetOpenBets")]
+        public List<OpenBetsDTO> GetOpenBets()
         {
+            var identity = (ClaimsIdentity)User.Identity;
+
+            var idPlayerClaim = identity.FindFirst("idPlayer")?.Value;
+            var idCallClaim = identity.FindFirst("idCall")?.Value;
+            var siteIdClaim = identity.FindFirst("siteId")?.Value;
+
+            if (idPlayerClaim == null || idCallClaim == null || siteIdClaim == null)
+                throw new UnauthorizedAccessException("Missing required claims in token.");
+
+            int idPlayer = Convert.ToInt32(idPlayerClaim);
+            int idCall = Convert.ToInt32(idCallClaim);
+            int siteId = Convert.ToInt32(siteIdClaim);
+
             var connString = _configuration.GetValue<string>("SrvSettings:DbConnMover");
-            return new LiveDbClass(connString).GetOpenBets(idplayer);
+            return new LiveDbClass().GetOpenBets(idPlayer);
         }
 
+        [Authorize]
         [HttpGet("GetPlayerDataStreaming/{idplayer}")]
         public PlayerDtoStream GetPlayerDataStreaming(int idplayer)
         {
             return new LiveDbWager().GetPlayerDataStreaming(idplayer);
         }
 
-        // [HttpGet("GetFixtures")]
-        // public List<MoverWagerHeaderDto> GetPendingLiveWagers()
-        // {
-        //     return new LiveDbWager().GetPendingLiveWagers();
-        // }
-
+        [Authorize]
         [HttpGet("GetPendingLiveWagers")]
         public List<MoverWagerHeaderDto> GetPendingLiveWagers()
         {
             return new LiveDbWager().GetPendingLiveWagers();
         }
 
+
+        [Authorize]
         [HttpPost("UpdateWagerDetailResult")]
         public async Task<ActionResult> UpdateWagerDetailResult(GradeDetailWager values)
         {
@@ -96,44 +203,25 @@ namespace WolfApiCore.Controllers
             return NoContent();
         }
 
-        [HttpGet("GetPlayerInfoByIdCall/{base64Code}")]
-        public IActionResult GetPlayerInfoByIdCall(string base64Code)
+        [Authorize]
+        [HttpGet("GetPlayerInfoByIdCall")]
+        public IActionResult GetPlayerInfoByIdCall()
         {
-            if( !_base64Service.IsBase64String(base64Code) ) {
-                return BadRequest(new
-                    {
-                        code = "UNKNOWN_ERROR",
-                        message = "An unknown error occurred."
-                    });
-            }
+            var identity = (ClaimsIdentity)User.Identity;
 
-            string idPlayerAndIdCall = _base64Service.DecodeBase64(base64Code);
+            var idPlayerClaim = identity.FindFirst("idPlayer")?.Value;
+            var idCallClaim = identity.FindFirst("idCall")?.Value;
+            var siteIdClaim = identity.FindFirst("siteId")?.Value;
 
-            if ( idPlayerAndIdCall.IsNullOrEmpty() )
-            {
+            if (idPlayerClaim == null || idCallClaim == null || siteIdClaim == null)
+                throw new UnauthorizedAccessException("Missing required claims in token.");
 
-              return BadRequest(new
-                    {
-                        code = "UNKNOWN_ERROR",
-                        message = "An unknown error occurred."
-                    }); 
-            }
+            int idPlayer = Convert.ToInt32(idPlayerClaim);
+            int idCall = Convert.ToInt32(idCallClaim);
+            int siteId = Convert.ToInt32(siteIdClaim);
 
-            List<string> idsOfPlayer = idPlayerAndIdCall.Split('|').ToList();
 
-            string idPlayer = idsOfPlayer[0];
-            string idCall = idsOfPlayer[1];
-
-            if ( !int.TryParse(idPlayer, out var parsedIdPlayer) || !int.TryParse(idCall, out var parsedIdCall) )
-            {
-                return Conflict(new
-                {       
-                    code = "WRONG_INT_FORMAT",
-                    message = "The value provided is not a valid integer"
-                });
-            }
-
-            PlayerInfoDto? player = new LiveDbWager().GetPlayerInfo(parsedIdPlayer, parsedIdCall);
+            PlayerInfoDto? player = new LiveDbWager().GetPlayerInfo(idPlayer, idCall);
 
             if ( player is null )
             {
@@ -146,98 +234,7 @@ namespace WolfApiCore.Controllers
             return Ok(player);
         }
 
-        //[HttpGet("test")]
-        //public FixtureApiDto test()
-        //{
-        //    List<int> fix = new List<int>();
-
-        //    fix.Add(11502906);
-
-        //    var obj = new RestApiClass().CallLSportAPI(fix, "1245", "administracion@corporacionzircon.com", "J83@d784cE");
-
-        //    return obj;
-        //}
-
-        //[HttpGet("test2/{BetId}")]
-        //public string test2(long BetId)
-        //{
-        //    string result = "";
-
-        //    int MarketId = 52;
-        // //   object BetId = 171905384311502906;
-
-        //    List<int> fix = new List<int>();
-
-        //    fix.Add(11481780);
-
-        //    var obj = new RestApiClass().CallLSportAPI(fix, "1245", "administracion@corporacionzircon.com", "J83@d784cE");
-
-        //    if (obj != null)
-        //    {
-        //        if (obj.Body != null && obj.Body.Count > 0)
-        //        {
-        //            if (obj.Body[0].Fixture != null)
-        //            {
-        //                if (obj.Body[0].Fixture.Status == 2) //juego sigue activo
-        //                {
-        //                    //ahora revisamos la linea
-        //                    if (obj.Body[0].Markets != null && obj.Body[0].Markets.Count() > 0)
-        //                    {
-        //                        var betMarket = obj.Body[0].Markets.Where(x => x.Id == MarketId).FirstOrDefault();
-
-        //                        if (betMarket != null && betMarket.Bets != null && betMarket.Bets.Count() > 0) {
-
-        //                            var betLine = betMarket.Bets.Where(x=> x.Id.ToString() == BetId.ToString()).FirstOrDefault();
-
-        //                            if (betLine != null)
-        //                            {
-        //                                if (betLine.Status != null && betLine.Status == 1)
-        //                                {
-        //                                    result = "Encontrada y bien";
-        //                                }
-        //                                else
-        //                                {
-        //                                    result = "BetLine Closed";
-        //                                }
-        //                            }
-        //                            else
-        //                            {
-        //                                result = "Betline does not exist";
-        //                            }
-        //                        }
-        //                        else
-        //                        {
-        //                            result = "Market closed or It does not exist";
-        //                        }
-        //                    }
-        //                    else
-        //                    {
-        //                        result = "No Markets available";
-        //                    }
-        //                }
-        //                else
-        //                {
-        //                    result = "Game Status closed";
-        //                }
-        //            }
-        //            else
-        //            {
-        //                result = "No Fixture ";
-        //            }
-        //        }
-        //        else
-        //        {
-        //            result = "No Body";
-        //        }
-        //    }
-        //    else
-        //    {
-        //        result = "No Data";
-        //    }
-
-        //    return result;
-
-        //}//end test
+        
 
 
     }

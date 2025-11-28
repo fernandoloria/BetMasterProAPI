@@ -1,19 +1,28 @@
 ﻿using Microsoft.Data.SqlClient;
 using Dapper;
 using System.Data;
-using static WolfApiCore.Models.AdminModels;
-using WolfApiCore.Models;
-using WolfApiCore.Utilities;
+using static BetMasterApiCore.Models.AdminModels;
+using BetMasterApiCore.Models;
+using BetMasterApiCore.Utilities;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 
-namespace WolfApiCore.DbTier
+namespace BetMasterApiCore.DbTier
 {
     public class LiveAdminDbClass
     {
-        private readonly string dgsConnString = "Data Source=192.168.83.195;Initial Catalog=DGSDATA;Persist Security Info=True;User ID=Payments;Password=p@yM3nts2701;TrustServerCertificate=True";
-        private readonly string moverConnString = "Data Source=192.168.83.195;Initial Catalog=mover;Persist Security Info=True;User ID=live;Password=h!D8k*4)]25[XM'r;TrustServerCertificate=True";
+        private readonly DbConnectionHelper _dbHelper;
 
+        public LiveAdminDbClass()
+        {
+            var builder = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+
+            IConfiguration config = builder.Build();
+
+            _dbHelper = new DbConnectionHelper(config);
+        }
         public AgentLoginResp AdminLogin(AgentLoginReq LoginReq)
         {
             AgentLoginResp agentLoginResp = null;
@@ -25,14 +34,14 @@ namespace WolfApiCore.DbTier
                     {
                         string sql = "exec TNTMakerLogin @User, @Password";
                         var values = new { User = LoginReq.Username, LoginReq.Password };
-                        using var connection = new SqlConnection(dgsConnString);
+                        using var connection = _dbHelper.GetDgsConnection();
                         agentLoginResp = connection.Query<AgentLoginResp>(sql, values).FirstOrDefault();
                     }
                     else if (LoginReq.Origin == 2) //Agent Site
                     {
                         string sql = "exec sp_MGL_AdminLogin @Agent, @Password";
                         var values = new { Agent = LoginReq.Username, LoginReq.Password };
-                        using var connection = new SqlConnection(dgsConnString);
+                        using var connection = _dbHelper.GetDgsConnection();
                         agentLoginResp = connection.Query<AgentLoginResp>(sql, values).FirstOrDefault();
                     }
                 }
@@ -52,7 +61,7 @@ namespace WolfApiCore.DbTier
             try
             {
 
-                using var connection = new SqlConnection(dgsConnString);
+                using var connection = _dbHelper.GetDgsConnection();
                 PlayersByIdAgentResp = connection.Query<GetPlayerListResp>(sql, values).ToList();
 
             }
@@ -75,7 +84,7 @@ namespace WolfApiCore.DbTier
                         string sql = "exec sp_MGL_SetProfileLimitsMassive @AgentId ,@IdWagerType ,@SportId ,@LeagueId, @SportName, @LeagueName, @FixtureId ,@MaxWager ,@MinWager ,@MaxPayout ,@MinPayout  ,@MinPrice ,@MaxPrice ,@TotAmtGame";
                         var values = new { item.AgentId, item.IdWagerType, item.SportId, item.LeagueId, item.SportName, item.LeagueName, item.FixtureId, item.MaxWager, item.MinWager, item.MaxPayout, item.MinPayout, item.MinPrice, item.MaxPrice, item.TotAmtGame };
 
-                        using var connection = new SqlConnection(moverConnString);
+                        using var connection = _dbHelper.GetMoverConnection();
                         List<GetAgentHierarchyResp> HierarchyNodes = GetAgentHierarchy(new GetAgentHierarchyReq() { IdAgent = item.AgentId });
                         LimitsRightsVerificationResp limitsMaster = CheckLimitsRights(item);
                         switch (limitsMaster.Code)
@@ -456,7 +465,7 @@ namespace WolfApiCore.DbTier
                         string sql = "exec sp_MGL_SetProfileLimits @AgentId ,@IdWagerType ,@SportId ,@LeagueId, @SportName, @LeagueName, @FixtureId ,@MaxWager ,@MinWager ,@MaxPayout ,@MinPayout  ,@MinPrice ,@MaxPrice ,@TotAmtGame";
                         var values = new { item.AgentId, item.IdWagerType, item.SportId, item.LeagueId, item.SportName, item.LeagueName, item.FixtureId, item.MaxWager, item.MinWager, item.MaxPayout, item.MinPayout, item.MinPrice, item.MaxPrice, item.TotAmtGame };
 
-                        using var connection = new SqlConnection(moverConnString);
+                        using var connection = _dbHelper.GetMoverConnection();
                         List<GetAgentHierarchyResp> HierarchyNodes = GetAgentHierarchy(new GetAgentHierarchyReq() { IdAgent = item.AgentId });
                         LimitsRightsVerificationResp limitsMaster = CheckLimitsRights(item);
                         switch (limitsMaster.Code)
@@ -826,19 +835,23 @@ namespace WolfApiCore.DbTier
         private bool CanUpdWagerLimits(int prmIdAgent)
         {
             string sql = "AgentRights_CanUpdWagerLimits";
-            int result;
-            using (var connection = new SqlConnection(dgsConnString))
+            int result = 0;
+
+            try
             {
-                using (var command = new SqlCommand(sql, connection))
-                {
-                    command.CommandType = System.Data.CommandType.StoredProcedure;
+                using var connection = _dbHelper.GetDgsConnection();
+                using var command = new SqlCommand(sql, connection);
+                command.CommandType = CommandType.StoredProcedure;
+                command.Parameters.Add(new SqlParameter("@prmIdAgent", prmIdAgent));
 
-                    // Agregar el parámetro prmIdAgent
-                    command.Parameters.Add(new SqlParameter("@prmIdAgent", prmIdAgent));
-
-                    connection.Open();
-                    result = (int)command.ExecuteScalar();
-                }
+                connection.Open();
+                var scalar = command.ExecuteScalar();
+                if (scalar != null && int.TryParse(scalar.ToString(), out int parsed))
+                    result = parsed;
+            }
+            catch (Exception ex)
+            {
+                _ = ex.Message;
             }
 
             return result == 1;
@@ -980,7 +993,7 @@ namespace WolfApiCore.DbTier
             var values = new { req.IdAgent };
             try
             {
-                using var connection = new SqlConnection(dgsConnString);
+                using var connection = _dbHelper.GetDgsConnection();
                 AgentHierarchyRespList = connection.Query<GetAgentHierarchyResp>(sql, values).ToList();
             }
             catch (Exception ex)
@@ -997,7 +1010,7 @@ namespace WolfApiCore.DbTier
             var values = new { prmIdagent = req.IdAgent };
             try
             {
-                using var connection = new SqlConnection(dgsConnString);
+                using var connection = _dbHelper.GetDgsConnection();
                 AgentTreeRespList = connection.Query<AgentTreeResp>(sql, values).ToList();
             }
             catch (Exception ex)
@@ -1014,7 +1027,7 @@ namespace WolfApiCore.DbTier
             {
                 string sql = "exec sp_MGL_GetProfileLimits @AgentId ,@IdWagerType ,@SportId ,@LeagueId ,@FixtureId";
                 var values = new { req.AgentId, req.IdWagerType, req.SportId, req.LeagueId, req.FixtureId };
-                using var connection = new SqlConnection(moverConnString);
+                using var connection = _dbHelper.GetMoverConnection();
                 ProfileLimitsResp = connection.Query<ProfileLimitsResp>(sql, values).FirstOrDefault();
 
             }
@@ -1037,7 +1050,7 @@ namespace WolfApiCore.DbTier
                     {
                         string sql = "exec sp_MGL_GetProfileLimits @AgentId ,@IdWagerType ,@SportId ,@LeagueId ,@FixtureId";
                         var values = new { item.AgentId, item.IdWagerType, item.SportId, item.LeagueId, item.FixtureId };
-                        using var connection = new SqlConnection(moverConnString);
+                        using var connection = _dbHelper.GetMoverConnection();
                         var oResult = connection.Query<ProfileLimitsResp>(sql, values).ToList();
                         ProfileLimitsResp.AddRange(oResult);
                     }
@@ -1058,7 +1071,7 @@ namespace WolfApiCore.DbTier
             var values = new { IdPlayer };
             try
             {
-                using var connection = new SqlConnection(dgsConnString);
+                using var connection = _dbHelper.GetDgsConnection();
                 playerLimitsByDGSResp = connection.Query<GetPlayerLimitsByDGSResp>(sql, values).FirstOrDefault();
                 if (playerLimitsByDGSResp != null)
                 {
@@ -1079,7 +1092,7 @@ namespace WolfApiCore.DbTier
             var values = new { prmIdProfile = IdProfile };
             try
             {
-                using var connection = new SqlConnection(dgsConnString);
+                using var connection = _dbHelper.GetDgsConnection();
                 resp = connection.Query<GetPlayerProfile_GetInfoResp>(sql, values).FirstOrDefault();
             }
             catch (Exception ex)
@@ -1100,7 +1113,7 @@ namespace WolfApiCore.DbTier
                     foreach (var oItem in req)
                     {
                         var values = new { oItem.AgentId, oItem.IdWagerType, oItem.SportId, oItem.LeagueId };
-                        using var connection = new SqlConnection(moverConnString);
+                        using var connection = _dbHelper.GetMoverConnection();
                         connection.Query<DeleteAgentLimitResp>(sql, values);
                         DeleteAgentLimitResp sucess = new DeleteAgentLimitResp()
                         {
@@ -1134,7 +1147,7 @@ namespace WolfApiCore.DbTier
             try
             {
                 var values = new { req.PlayerId, req.IdWagerType, req.SportId, req.LeagueId, req.FixtureId };
-                using var connection = new SqlConnection(moverConnString);
+                using var connection = _dbHelper.GetMoverConnection();
                 ProfileLimitsResp = connection.Query<ProfileLimitsByPlayerResp>(sql, values).FirstOrDefault();
 
             }
@@ -1168,7 +1181,7 @@ namespace WolfApiCore.DbTier
                             oLimit.TotAmtGame 
                         };
 
-                        using var connection = new SqlConnection(moverConnString);
+                        using var connection = _dbHelper.GetMoverConnection();
                         List<ProfileLimitsByPlayerResp> ProfileLimitsRespAUX = connection.Query<ProfileLimitsByPlayerResp>(sql, values).ToList();
 
 
@@ -1230,7 +1243,7 @@ namespace WolfApiCore.DbTier
                         if (oLimit.SportId != null)
                         {
                             var values = new { oLimit.PlayerId, oLimit.IdWagerType, oLimit.SportId, oLimit.LeagueId, oLimit.SportName, oLimit.LeagueName, oLimit.FixtureId, oLimit.MaxWager, oLimit.MinWager, oLimit.MaxPayout, oLimit.MinPayout, oLimit.MinPrice, oLimit.MaxPrice, oLimit.TotAmtGame };
-                            using var connection = new SqlConnection(moverConnString);
+                            using var connection = _dbHelper.GetMoverConnection();
                             _ = connection.Query<LimitsRightsVerificationResp>(sql, values);
 
                             Resp = new LimitsRightsVerificationResp()
@@ -1286,7 +1299,7 @@ namespace WolfApiCore.DbTier
             try
             {
 
-                using var connection = new SqlConnection(moverConnString);
+                using var connection = _dbHelper.GetMoverConnection();
                 VerifiedPasswordByPlayerResp = connection.Query<GetVerifiedPasswordByPlayerResp>(sql, values).FirstOrDefault();
                 if (VerifiedPasswordByPlayerResp == null)
                 {
@@ -1318,7 +1331,7 @@ namespace WolfApiCore.DbTier
             try
             {
 
-                using var connection = new SqlConnection(moverConnString);
+                using var connection = _dbHelper.GetMoverConnection();
                 connection.Query<SetVerifiedPasswordByPlayerResp>(sql, values);
                 Resp.Code = 7;
                 Resp.Message = "Successfull, Verified Password Applied!";
@@ -1348,7 +1361,7 @@ namespace WolfApiCore.DbTier
                     foreach (var oHiddenReq in req)
                     {
                         var values = new { oHiddenReq.AgentId, oHiddenReq.PlayerId, oHiddenReq.SportId, oHiddenReq.LeagueId, oHiddenReq.SportName, oHiddenReq.LeagueName, oHiddenReq.Enable };
-                        using var connection = new SqlConnection(moverConnString);
+                        using var connection = _dbHelper.GetMoverConnection();
                         connection.Query<SetVerifiedPasswordByPlayerResp>(sql, values);
                         resp.Code = 7;
                         resp.Message = "Successfull, Visibility for Sport/League Changed!";
@@ -1370,7 +1383,7 @@ namespace WolfApiCore.DbTier
             try
             {   
                 var values = new { oItem.AgentId, oItem.PlayerId/*, oItem.SportId, oItem.LeagueId */};
-                using var connection = new SqlConnection(moverConnString);
+                using var connection = _dbHelper.GetMoverConnection();
                 oListResp = connection.Query<GetSportsAndLeaguesHiddenResp>(sql, values).ToList();
             }
             catch (Exception ex)
@@ -1391,7 +1404,7 @@ namespace WolfApiCore.DbTier
                     foreach (var oItem in req)
                     {
                         var values = new { oItem.AgentId, oItem.PlayerId/*, oItem.SportId, oItem.LeagueId */};
-                        using var connection = new SqlConnection(moverConnString);
+                        using var connection = _dbHelper.GetMoverConnection();
                         oListResp = connection.Query<GetSportsAndLeaguesHiddenResp>(sql, values).ToList();
                     }
 
@@ -1411,7 +1424,7 @@ namespace WolfApiCore.DbTier
             try
             {
                 var values = new { req.AgentId, req.PlayerId, req.AllData };
-                using var connection = new SqlConnection(moverConnString);
+                using var connection = _dbHelper.GetMoverConnection();
                 oListResp = connection.Query<GetAccessDeniedListResp>(sql, values).FirstOrDefault();
             }
             catch (Exception ex)
@@ -1437,7 +1450,7 @@ namespace WolfApiCore.DbTier
                             oItem.AllData 
                         };
 
-                        using var connection = new SqlConnection(moverConnString);
+                        using var connection = _dbHelper.GetMoverConnection();
                         oListResp.AddRange(connection.Query<GetAccessDeniedListResp>(sql, values).ToList());
                     }
 
@@ -1479,7 +1492,7 @@ namespace WolfApiCore.DbTier
                                     if (node.AgentID == oItem.AgentId)
                                     {
                                         var values = new { oItem.Id, oItem.AgentId, oItem.PlayerId, oItem.Enable };
-                                        using var connection = new SqlConnection(moverConnString);
+                                        using var connection = _dbHelper.GetMoverConnection();
                                         connection.Query<SetAccessDeniedListResp>(sql, values);
                                         SetAccessDeniedListResp oResp = new SetAccessDeniedListResp()
                                         {
@@ -1494,7 +1507,7 @@ namespace WolfApiCore.DbTier
                                     }
                                     else {
                                         var values = new { oItem.Id, node.AgentID, oItem.PlayerId, oItem.Enable };
-                                        using var connection = new SqlConnection(moverConnString);
+                                        using var connection = _dbHelper.GetMoverConnection();
                                         connection.Query<SetAccessDeniedListResp>(sql, values);
                                         SetAccessDeniedListResp oResp = new SetAccessDeniedListResp()
                                         {
@@ -1542,7 +1555,7 @@ namespace WolfApiCore.DbTier
                                         if (node.AgentID == oItem.AgentId)
                                         {
                                             var valuesHierarchy = new { oItem.Id, oItem.AgentId, oItem.PlayerId, oItem.Enable };
-                                            using var connectionHierarchy = new SqlConnection(moverConnString);
+                                            using var connectionHierarchy = _dbHelper.GetMoverConnection();
                                             connectionHierarchy.Query<SetAccessDeniedListResp>(sql, valuesHierarchy);
                                             SetAccessDeniedListResp oRespHierarchy = new SetAccessDeniedListResp()
                                             {
@@ -1558,7 +1571,7 @@ namespace WolfApiCore.DbTier
                                         else
                                         {
                                             var valuesSubHierarchy = new { oItem.Id, node.AgentID, oItem.PlayerId, oItem.Enable };
-                                            using var connectionSubHierarchy = new SqlConnection(moverConnString);
+                                            using var connectionSubHierarchy = _dbHelper.GetMoverConnection();
                                             connectionSubHierarchy.Query<SetAccessDeniedListResp>(sql, valuesSubHierarchy);
                                             SetAccessDeniedListResp oRespSubHierarchy = new SetAccessDeniedListResp()
                                             {
@@ -1604,7 +1617,7 @@ namespace WolfApiCore.DbTier
                     foreach (var oItem in req)
                     {
                         var values = new { oItem.Id, oItem.PlayerId };
-                        using var connection = new SqlConnection(moverConnString);
+                        using var connection = _dbHelper.GetMoverConnection();
                         connection.Query<DeletePlayerLimitResp>(sql, values);
                         DeletePlayerLimitResp sucess = new DeletePlayerLimitResp()
                         {
@@ -1641,7 +1654,7 @@ namespace WolfApiCore.DbTier
                     foreach (var oItem in req)
                     {
                         var values = new { oItem.Id, oItem.AgentId };
-                        using var connection = new SqlConnection(moverConnString);
+                        using var connection = _dbHelper.GetMoverConnection();
                         connection.Query<DeletePlayerLimitResp>(sql, values);
                         DeleteHiddenLeaguesResp sucess = new DeleteHiddenLeaguesResp()
                         {
@@ -1673,7 +1686,7 @@ namespace WolfApiCore.DbTier
             {
                 string sql = "exec VegasLive_SearchAgent @prmS";
                 var values = new { prmS = req.Agent };
-                using var connection = new SqlConnection(dgsConnString);
+                using var connection = _dbHelper.GetDgsConnection();
                 var objDGS = connection.Query<SearchAgentResp>(sql, values).FirstOrDefault();
                 if (objDGS != null)
                 {
@@ -1696,7 +1709,7 @@ namespace WolfApiCore.DbTier
             {
                 string sql = "exec VegasLive_SearchPlayer @prmS";
                 var values = new { prmS = req.Player };
-                using var connection = new SqlConnection(dgsConnString);
+                using var connection = _dbHelper.GetDgsConnection();
                 var objDGS = connection.Query<SearchPlayertResp>(sql, values).FirstOrDefault();
                 if (objDGS != null)
                 {
@@ -1720,7 +1733,7 @@ namespace WolfApiCore.DbTier
             {
                 string sql = "exec Player_GetInfoByID @IdPlayer";
                 var values = new { IdPlayer = req.PlayerId };
-                using var connection = new SqlConnection(dgsConnString);
+                using var connection = _dbHelper.GetDgsConnection();
                 var objDGS = connection.Query<GetPlayerInfoResp>(sql, values).FirstOrDefault();
                 if (objDGS != null)
                 {
@@ -1831,7 +1844,7 @@ namespace WolfApiCore.DbTier
             DgsUserInfo userInfo = new DgsUserInfo();
             try
             {
-                using var connection = new SqlConnection(dgsConnString);
+                using var connection = _dbHelper.GetDgsConnection();
                 var query = "SELECT IdUser, Name FROM USERS WHERE LoginName = '" + credentials.LoginName + "' and Password = '" + credentials.Password + "' ";
                 userInfo = connection.Query<DgsUserInfo>(query).FirstOrDefault();
             }
@@ -1847,91 +1860,94 @@ namespace WolfApiCore.DbTier
             List<FixtureDto> fixtures = new List<FixtureDto>();
             try
             {
-                using (var connection = new SqlConnection(moverConnString))
+                using var connection = _dbHelper.GetMoverConnection();
+                var parameters = new
                 {
-                    var parameters = new
-                    {
-                        eventDate = filter.StartDate.Date,
-                        sportId = filter.SportId,
-                        leagueId = filter.LeagueId,
-                        locationId = filter.LocationId,
-                        statusId = filter.StatusId
-                    };
+                    eventDate = filter.StartDate.Date,
+                    sportId = filter.SportId,
+                    leagueId = filter.LeagueId,
+                    locationId = filter.LocationId,
+                    statusId = filter.StatusId
+                };
 
-                    fixtures = connection.Query<FixtureDto>(@"[dbo].[sp_MGL_GetFixtures]", param: parameters, null, false).ToList();
-                }
+                fixtures = connection.Query<FixtureDto>(
+                    "[dbo].[sp_MGL_GetFixtures]",
+                    param: parameters,
+                    commandType: CommandType.StoredProcedure
+                ).ToList();
             }
-            catch// (Exception ex)
+            catch
             {
-                //_ = new Misc().WriteErrorLog("MoverDbClass", "GetPendingWagerHeader", ex.Message, ex.StackTrace);
+                // log opcional
             }
 
             return fixtures;
         }
 
-        
+
         public AgentSettings GetAgentSettings(int id)
         {
-            var resp = new AgentSettings();
+            AgentSettings resp = new AgentSettings();
             try
             {
-                using (var connection = new SqlConnection(moverConnString))
-                {                    
-                    resp = connection.QueryFirstOrDefault<AgentSettings>(sql: "sp_MGL_GetAgentSettings", new
-                    {
-                        idAgent = id
-                    }, commandType: CommandType.StoredProcedure);
-
-                }
+                using var connection = _dbHelper.GetMoverConnection();
+                resp = connection.QueryFirstOrDefault<AgentSettings>(
+                    "sp_MGL_GetAgentSettings",
+                    new { idAgent = id },
+                    commandType: CommandType.StoredProcedure
+                );
             }
-            catch// (Exception ex)
+            catch
             {
-                //_ = new Misc().WriteErrorLog("MoverDbClass", "GetPendingWagerHeader", ex.Message, ex.StackTrace);
+                // log opcional
             }
 
             return resp;
         }
+
 
         public AgentSettings GetAgentSettingsForAdmin(int id)
         {
-            var resp = new AgentSettings();
+            AgentSettings resp = new AgentSettings();
             try
             {
-                using (var connection = new SqlConnection(moverConnString))
-                {
-                    resp = connection.QueryFirstOrDefault<AgentSettings>(sql: "sp_MGL_GetAgentSettingsForAdmin", new
-                    {
-                        idAgent = id
-                    }, commandType: CommandType.StoredProcedure);
-
-                }
+                using var connection = _dbHelper.GetMoverConnection();
+                resp = connection.QueryFirstOrDefault<AgentSettings>(
+                    "sp_MGL_GetAgentSettingsForAdmin",
+                    new { idAgent = id },
+                    commandType: CommandType.StoredProcedure
+                );
             }
-            catch// (Exception ex)
+            catch
             {
-                //_ = new Misc().WriteErrorLog("MoverDbClass", "GetPendingWagerHeader", ex.Message, ex.StackTrace);
+                // log opcional
             }
 
             return resp;
         }
 
+
         public void SaveAgentSettings(AgentSettings settings)
-        {            
+        {
             try
             {
-                using (var connection = new SqlConnection(moverConnString))
-                {
-                    connection.Execute(sql: "sp_MGL_SetAgentSettings", new
+                using var connection = _dbHelper.GetMoverConnection();
+                connection.Execute(
+                    "sp_MGL_SetAgentSettings",
+                    new
                     {
                         idAgent = settings.IdAgent,
                         secondsDelay = settings.SecondsDelay
-                    }, commandType: CommandType.StoredProcedure);
-                }
+                    },
+                    commandType: CommandType.StoredProcedure
+                );
             }
-            catch// (Exception ex)
+            catch
             {
-                //_ = new Misc().WriteErrorLog("MoverDbClass", "GetPendingWagerHeader", ex.Message, ex.StackTrace);
+                // log opcional
             }
         }
+
 
     }//end class
 }//end namespace
