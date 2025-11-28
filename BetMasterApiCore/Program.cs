@@ -6,6 +6,7 @@ using BetMasterApiCore.Models;
 using BetMasterApiCore.Utilities;
 using BetMasterApiCore.Stream;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
@@ -15,6 +16,7 @@ var builder = WebApplication.CreateBuilder(args);
 var key = builder.Configuration["Jwt:Key"];
 var issuer = builder.Configuration["Jwt:Issuer"];
 var audience = builder.Configuration["Jwt:Audience"];
+const string HubEndpoint = "/cnn";
 
 // Add services
 builder.Services.AddControllers();
@@ -24,6 +26,7 @@ builder.Services.AddScoped<DbConnectionHelper>();
 builder.Services.AddSignalR();
 builder.Services.AddTransient<Base64Service>();
 builder.Services.AddSingleton<JwtService>();
+builder.Services.AddAuthorization();
 
 // JWT Authentication
 builder.Services.AddAuthentication(options =>
@@ -44,6 +47,22 @@ builder.Services.AddAuthentication(options =>
         ValidIssuer = issuer,
         ValidAudience = audience,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key))
+    };
+
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+
+            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments(HubEndpoint))
+            {
+                context.Token = accessToken;
+            }
+
+            return Task.CompletedTask;
+        }
     };
 });
 
@@ -136,6 +155,8 @@ app.UseAuthorization();
 app.MapControllers();
 
 // SignalR
-app.MapHub<Messages>("cnn").AllowAnonymous();
+app.MapHub<Messages>(HubEndpoint)
+    .RequireCors(MyAllowSpecificOrigins)
+    .AllowAnonymous();
 
 app.Run();
